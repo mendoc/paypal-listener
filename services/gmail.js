@@ -37,9 +37,9 @@ class GmailService {
           if (emailType) {
             const parsedEmail = this.parsePayPalEmail(emailType, date, content);
             if (parsedEmail) {
-                console.log("email:", parsedEmail)
+              console.log("email:", parsedEmail);
               emails.push(parsedEmail);
-            //   await this.markAsRead(message.id);
+              //   await this.markAsRead(message.id);
             }
           }
         }
@@ -73,7 +73,6 @@ class GmailService {
       const subject = headers.find((h) => h.name === "Subject").value;
       const date = headers.find((h) => h.name === "Date").value;
 
-      // Extraire le contenu du mail
       let content = "";
       if (response.data.payload.parts) {
         content = this.getTextFromParts(response.data.payload.parts);
@@ -139,17 +138,17 @@ class GmailService {
     );
     if (dateMatch) result.date = dateMatch[1];
 
-    // Extraction de l'heure en GMT+1
+    // Extraction de l'heure avec formatage
     const emailDateMatch = emailDate.match(
-      /\w+, \d+ \w+ \d+ (\d{2}):(\d{2}):(\d{2}) ([-+]\d{4})/
+      /\w+, \d+ \w+ \d+ (\d{2}):(\d{2}):\d{2} ([-+]\d{4})/
     );
     if (emailDateMatch) {
-      const [hours, minutes, seconds] = emailDateMatch.slice(1, 4).map(Number);
-      const timezoneOffset = parseInt(emailDateMatch[4], 10) / 100;
+      const [hours, minutes] = emailDateMatch.slice(1, 3).map(Number);
+      const timezoneOffset = parseInt(emailDateMatch[3], 10) / 100;
       const adjustedHours = (hours + 1 - timezoneOffset + 24) % 24;
-      result.time = `${adjustedHours
-        .toString()
-        .padStart(2, "0")}:${minutes}:${seconds} GMT+1`;
+      result.time = `${String(adjustedHours).padStart(2, "0")}:${String(
+        minutes
+      ).padStart(2, "0")}`;
     }
 
     // Extraction de la référence
@@ -182,17 +181,17 @@ class GmailService {
     );
     if (dateMatch) result.date = dateMatch[1];
 
-    // Extraction de l'heure en GMT+1
+    // Extraction de l'heure avec formatage
     const emailDateMatch = emailDate.match(
-      /\w+, \d+ \w+ \d+ (\d{2}):(\d{2}):(\d{2}) ([-+]\d{4})/
+      /\w+, \d+ \w+ \d+ (\d{2}):(\d{2}):\d{2} ([-+]\d{4})/
     );
     if (emailDateMatch) {
-      const [hours, minutes, seconds] = emailDateMatch.slice(1, 4).map(Number);
-      const timezoneOffset = parseInt(emailDateMatch[4], 10) / 100;
+      const [hours, minutes] = emailDateMatch.slice(1, 3).map(Number);
+      const timezoneOffset = parseInt(emailDateMatch[3], 10) / 100;
       const adjustedHours = (hours + 1 - timezoneOffset + 24) % 24;
-      result.time = `${adjustedHours
-        .toString()
-        .padStart(2, "0")}:${minutes}:${seconds} GMT+1`;
+      result.time = `${String(adjustedHours).padStart(2, "0")}:${String(
+        minutes
+      ).padStart(2, "0")}`;
     }
 
     // Extraction de la référence

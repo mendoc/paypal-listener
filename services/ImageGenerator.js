@@ -2,16 +2,19 @@ const { createCanvas, loadImage } = require("canvas");
 
 class ImageGenerator {
   async generatePaymentImage(paymentInfo) {
+    const width = 720;
+    const height = 850;
+
     // Créer un canvas avec les dimensions souhaitées (ratio carte bancaire)
-    const canvas = createCanvas(800, 1000);
+    const canvas = createCanvas(width, height);
     const ctx = canvas.getContext("2d");
 
     // Définir le fond blanc
-    ctx.fillStyle = "#FFFFFF";
-    ctx.fillRect(0, 0, 800, 1000);
+    ctx.fillStyle = "#dedee2";
+    ctx.fillRect(0, 0, width, height);
 
     // Partie supérieure (carte blanche)
-    this.drawTopCard(ctx, paymentInfo);
+    await this.drawTopCard(ctx, paymentInfo);
 
     // Partie inférieure (fond bleu foncé)
     this.drawBottomCard(ctx, paymentInfo);
@@ -20,69 +23,82 @@ class ImageGenerator {
     return canvas.toBuffer("image/png");
   }
 
-  drawTopCard(ctx, paymentInfo) {
+  async drawTopCard(ctx, paymentInfo) {
+    const width = 720;
+    // Top line
+    ctx.fillStyle = "#222d65";
+    ctx.fillRect(0, 0, width, 13);
+
     // Zone blanche supérieure avec ombre
+    ctx.beginPath();
     ctx.fillStyle = "#FFFFFF";
     ctx.shadowColor = "rgba(0, 0, 0, 0.1)";
     ctx.shadowBlur = 10;
     ctx.shadowOffsetY = 5;
-    this.roundRect(ctx, 50, 50, 700, 300, 20);
+    ctx.roundRect(30, 32, width - 60, 300, 10);
     ctx.fill();
     ctx.shadowBlur = 0;
     ctx.shadowOffsetY = 0;
 
-    // Logo Miango (cercle vert avec sourire)
-    ctx.fillStyle = "#4A5724"; // Couleur vert olive foncé
-    ctx.beginPath();
-    ctx.arc(400, 120, 40, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Sourire dans le logo
-    ctx.strokeStyle = "#FFFFFF";
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.arc(400, 120, 20, 0.2 * Math.PI, 0.8 * Math.PI);
-    ctx.stroke();
+    // Charger et dessiner le logo
+    try {
+      const logo = await loadImage("./services/logo-round.png");
+      const logoSize = 90; // Taille du logo
+      ctx.drawImage(logo, 350 - logoSize / 2, 55, logoSize, logoSize);
+    } catch (error) {
+      console.error("Erreur lors du chargement du logo:", error);
+      // Fallback au cas où l'image ne peut pas être chargée
+      ctx.fillStyle = "#4A5724";
+      ctx.beginPath();
+      ctx.arc(400, 120, 40, 0, Math.PI * 2);
+      ctx.fill();
+    }
 
     // Texte "Reçu de paiement"
-    ctx.fillStyle = "#1FB486"; // Couleur verte
-    ctx.font = "bold 32px Arial";
+    ctx.font = "bold 30px arial";
     ctx.textAlign = "center";
-    ctx.fillText("Reçu de paiement", 400, 200);
+    ctx.fillStyle = "#24ae89"; // Couleur verte
+    ctx.fillText("Transfert effectué", 355, 190);
 
     // Montant et destinataire
-    ctx.fillStyle = "#2D3748"; // Couleur texte foncée
-    ctx.font = "24px Arial";
+    ctx.font = "24px Verdana";
+    ctx.textAlign = "center";
+    ctx.fillStyle = "#222d65";
     ctx.fillText(
-      `Vous avez envoyé ${paymentInfo.amount} à ${paymentInfo.recipient}`,
-      400,
-      250
+      `Le montant de ${paymentInfo.amount} a été envoyé à`,
+      ctx.canvas.width / 2,
+      240
     );
-
-    // Numéro de référence
-    ctx.fillStyle = "#A0AEC0"; // Couleur grise
-    ctx.font = "18px Arial";
-    ctx.fillText(`#${paymentInfo.reference}`, 400, 290);
+    ctx.fillText(
+      `${paymentInfo.recipient.toUpperCase()}`,
+      ctx.canvas.width / 2,
+      275
+    );
   }
 
   drawBottomCard(ctx, paymentInfo) {
+    const width = 720;
+
     // Fond bleu marine
-    ctx.fillStyle = "#1A365D";
-    this.roundRect(ctx, 50, 380, 700, 570, 20);
+    ctx.fillStyle = "#222d65";
+    ctx.beginPath();
+    ctx.roundRect(30, 350, width - 60, ctx.canvas.height - 365, 10);
     ctx.fill();
 
     // Style pour les lignes d'information
     ctx.fillStyle = "#FFFFFF";
-    const startY = 450;
-    const lineHeight = 80;
-    const labelX = 100;
+    const startY = 400;
+    const lineHeight = 70;
+    const labelX = 70;
     const valueX = 650;
+    const recipient = this.splitName(paymentInfo.recipient.toUpperCase());
+    // ;
 
     // Dessiner les lignes d'information
     this.drawInfoLine(
       ctx,
-      "Envoyé par",
-      paymentInfo.sender || "N/A",
+      "Référence",
+      paymentInfo.reference,
       startY,
       labelX,
       valueX
@@ -98,7 +114,7 @@ class ImageGenerator {
     this.drawInfoLine(
       ctx,
       "Date et Heure",
-      `${paymentInfo.date} à ${paymentInfo.time}`,
+      `${paymentInfo.date} à ${paymentInfo.time.substring(0, 5)}`,
       startY + lineHeight * 2,
       labelX,
       valueX
@@ -106,50 +122,59 @@ class ImageGenerator {
     this.drawInfoLine(
       ctx,
       "Bénéficiaire",
-      paymentInfo.recipient,
+      recipient,
       startY + lineHeight * 3,
       labelX,
       valueX
     );
 
     // Ligne de séparation et texte du bas
-    const footerY = 880;
+    const footerY = 780;
     ctx.fillStyle = "#FFFFFF";
-    ctx.font = "16px Arial";
+    const footerText = "Pour faire une transaction, rendez-vous sur :";
+    ctx.font = "19px Verdana";
     ctx.textAlign = "center";
-    ctx.fillText("Pour faire une transaction, rendez-vous sur", 400, footerY);
-    ctx.font = "bold 16px Arial";
-    ctx.fillText("bit.ly/miango", 400, footerY + 30);
+    ctx.fillText(footerText, ctx.canvas.width / 2, footerY);
+    ctx.font = "bold 20px Courier New";
+    ctx.fillText("bit.ly/miango", ctx.canvas.width / 2, footerY + 30);
   }
 
   drawInfoLine(ctx, label, value, y, labelX, valueX) {
     ctx.textAlign = "left";
-    ctx.font = "18px Arial";
-    ctx.fillStyle = "#A0AEC0";
-    ctx.fillText(label, labelX, y);
+    ctx.font = "24px Verdana";
+    ctx.fillStyle = "#FFFFFF";
+    ctx.fillText(label, labelX, value.includes("\n") ? y + 15 : y);
 
-    ctx.font = "bold 18px Arial";
+    ctx.font = "bold 24px Verdana";
     ctx.fillStyle = "#FFFFFF";
     ctx.textAlign = "right";
-    ctx.fillText(value, valueX, y);
+    if (value.includes("\n")) {
+      const parts = value.split("\n");
+      ctx.fillText(parts[0], ctx.canvas.width - 70, y);
+      ctx.fillText(parts[1], ctx.canvas.width - 70, y + 30);
+    } else {
+      ctx.fillText(value, valueX, y);
+    }
 
     // Ligne de séparation
-    ctx.strokeStyle = "#2D4A8C";
+    ctx.strokeStyle = "#dddddd";
     ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.moveTo(labelX, y + 20);
-    ctx.lineTo(valueX, y + 20);
+    ctx.moveTo(labelX, value.includes("\n") ? y + 53 : y + 28);
+    ctx.lineTo(valueX, value.includes("\n") ? y + 53 : y + 28);
     ctx.stroke();
   }
 
-  roundRect(ctx, x, y, width, height, radius) {
-    ctx.beginPath();
-    ctx.moveTo(x + radius, y);
-    ctx.arcTo(x + width, y, x + width, y + height, radius);
-    ctx.arcTo(x + width, y + height, x, y + height, radius);
-    ctx.arcTo(x, y + height, x, y, radius);
-    ctx.arcTo(x, y, x + width, y, radius);
-    ctx.closePath();
+  splitName(str) {
+    if (str.length <= 25) return str; // Si la chaîne est courte, pas besoin de la diviser.
+
+    const parts = str.split(" ");
+    const middle = Math.ceil(parts.length / 2); // Calcul du point médian en nombre de parts.
+
+    const part1 = parts.slice(0, middle).join(" ");
+    const part2 = parts.slice(middle).join(" ");
+
+    return part1 + "\n" + part2;
   }
 }
 

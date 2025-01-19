@@ -39,7 +39,7 @@ class GmailService {
             if (parsedEmail) {
               console.log("email:", parsedEmail);
               emails.push(parsedEmail);
-              //   await this.markAsRead(message.id);
+                await this.markAsRead(message.id);
             }
           }
         }
@@ -218,4 +218,4 @@ class GmailService {
   }
 }
 
-module.exports = GmailService;
+export { GmailService };

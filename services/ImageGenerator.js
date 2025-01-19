@@ -178,4 +178,4 @@ class ImageGenerator {
   }
 }
 
-module.exports = ImageGenerator;
+export { ImageGenerator };

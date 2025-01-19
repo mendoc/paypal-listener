@@ -4,7 +4,10 @@
   "description": "Surveiller les emails de confirmation PayPal",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js"
+    "dev": "netlify dev",
+    "start": "netlify functions:serve",
+    "build": "netlify functions:build",
+    "create": "netlify functions:create"
   },
   "repository": {
     "type": "git",
@@ -27,6 +30,7 @@
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "googleapis": "^144.0.0",
+    "netlify-cli": "^18.0.1",
     "node-telegram-bot-api": "^0.66.0"
   }
 }

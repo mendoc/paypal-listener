@@ -1,175 +1,118 @@
-import { createCanvas, loadImage } from "canvas";
+import sharp from 'sharp';
+import { readFileSync } from 'fs';
+import { join } from 'path';
 
 export class ImageGenerator {
   async generatePaymentImage(paymentInfo) {
-    const width = 720;
-    const height = 850;
-
-    // Créer un canvas avec les dimensions souhaitées (ratio carte bancaire)
-    const canvas = createCanvas(width, height);
-    const ctx = canvas.getContext("2d");
-
-    // Définir le fond blanc
-    ctx.fillStyle = "#dedee2";
-    ctx.fillRect(0, 0, width, height);
-
-    // Partie supérieure (carte blanche)
-    await this.drawTopCard(ctx, paymentInfo);
-
-    // Partie inférieure (fond bleu foncé)
-    this.drawBottomCard(ctx, paymentInfo);
-
-    // Retourner le buffer
-    return canvas.toBuffer("image/png");
-  }
-
-  async drawTopCard(ctx, paymentInfo) {
-    const width = 720;
-    // Top line
-    ctx.fillStyle = "#222d65";
-    ctx.fillRect(0, 0, width, 13);
-
-    // Zone blanche supérieure avec ombre
-    ctx.beginPath();
-    ctx.fillStyle = "#FFFFFF";
-    ctx.shadowColor = "rgba(0, 0, 0, 0.1)";
-    ctx.shadowBlur = 10;
-    ctx.shadowOffsetY = 5;
-    ctx.roundRect(30, 32, width - 60, 300, 10);
-    ctx.fill();
-    ctx.shadowBlur = 0;
-    ctx.shadowOffsetY = 0;
-
-    // Charger et dessiner le logo
     try {
-      const logo = await loadImage("./services/logo-round.png");
-      const logoSize = 90; // Taille du logo
-      ctx.drawImage(logo, 350 - logoSize / 2, 55, logoSize, logoSize);
+      const width = 720;
+      const height = 850;
+      const recipient = this.splitName(paymentInfo.recipient.toUpperCase());
+
+      // Créer une image SVG avec le contenu
+      const svgBuffer = Buffer.from(`
+        <svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
+          <!-- Fond gris clair -->
+          <rect width="${width}" height="${height}" fill="#dedee2"/>
+
+          <!-- Top line -->
+          <rect x="0" y="0" width="${width}" height="13" fill="#222d65"/>
+
+          <!-- Carte supérieure -->
+          <defs>
+            <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+              <feGaussianBlur stdDeviation="5" result="shadow"/>
+              <feOffset dx="0" dy="5" result="offsetblur"/>
+              <feFlood flood-color="rgba(0,0,0,0.1)"/>
+              <feComposite in2="offsetblur" operator="in"/>
+              <feMerge>
+                <feMergeNode/>
+                <feMergeNode in="SourceGraphic"/>
+              </feMerge>
+            </filter>
+          </defs>
+
+          <rect x="30" y="32" width="${width - 60}" height="300" rx="10" fill="#FFFFFF" filter="url(#shadow)"/>
+
+          <!-- Textes supérieurs -->
+          <text x="${width/2}" y="190" font-family="Arial" font-size="30" font-weight="bold" fill="#24ae89" text-anchor="middle">Transfert effectué</text>
+          <text x="${width/2}" y="240" font-family="Verdana" font-size="24" fill="#222d65" text-anchor="middle">Le montant de ${paymentInfo.amount} a été envoyé à</text>
+          <text x="${width/2}" y="275" font-family="Verdana" font-size="24" fill="#222d65" text-anchor="middle">${paymentInfo.recipient.toUpperCase()}</text>
+
+          <!-- Carte inférieure -->
+          <rect x="30" y="350" width="${width - 60}" height="${height - 365}" rx="10" fill="#222d65"/>
+
+          <!-- Informations -->
+          ${this.generateInfoLine("Référence", paymentInfo.reference, 400)}
+          ${this.generateInfoLine("Montant", paymentInfo.amount, 470)}
+          ${this.generateInfoLine("Date et Heure", `${paymentInfo.date} à ${paymentInfo.time.substring(0, 5)}`, 540)}
+          ${this.generateInfoLine("Bénéficiaire", recipient, 610)}
+
+          <!-- Footer -->
+          <text x="${width/2}" y="780" font-family="Verdana" font-size="19" fill="#FFFFFF" text-anchor="middle">Pour faire une transaction, rendez-vous sur :</text>
+          <text x="${width/2}" y="810" font-family="Courier New" font-size="20" font-weight="bold" fill="#FFFFFF" text-anchor="middle">bit.ly/miango</text>
+        </svg>
+      `);
+
+      try {
+        // Lire le logo
+        const logoPath = join(process.cwd(), './services/logo-round.png');
+        const logo = readFileSync(logoPath);
+
+        // Redimensionner le logo avant de le composer
+        const resizedLogo = await sharp(logo)
+          .resize(90, 90)
+          .toBuffer();
+
+        // Créer l'image finale avec le logo redimensionné
+        const image = await sharp(svgBuffer)
+          .composite([{
+            input: resizedLogo,
+            top: 55,
+            left: 305,
+          }])
+          .png()
+          .toBuffer();
+
+        return image;
+      } catch (error) {
+        console.error('Erreur lors du chargement du logo:', error);
+        // Retourner l'image sans logo en cas d'erreur
+        return await sharp(svgBuffer).png().toBuffer();
+      }
     } catch (error) {
-      console.error("Erreur lors du chargement du logo:", error);
-      // Fallback au cas où l'image ne peut pas être chargée
-      ctx.fillStyle = "#4A5724";
-      ctx.beginPath();
-      ctx.arc(400, 120, 40, 0, Math.PI * 2);
-      ctx.fill();
+      console.error('Erreur lors de la génération de l\'image:', error);
+      throw error;
     }
-
-    // Texte "Reçu de paiement"
-    ctx.font = "bold 30px arial";
-    ctx.textAlign = "center";
-    ctx.fillStyle = "#24ae89"; // Couleur verte
-    ctx.fillText("Transfert effectué", 355, 190);
-
-    // Montant et destinataire
-    ctx.font = "24px Verdana";
-    ctx.textAlign = "center";
-    ctx.fillStyle = "#222d65";
-    ctx.fillText(
-      `Le montant de ${paymentInfo.amount} a été envoyé à`,
-      ctx.canvas.width / 2,
-      240
-    );
-    ctx.fillText(
-      `${paymentInfo.recipient.toUpperCase()}`,
-      ctx.canvas.width / 2,
-      275
-    );
   }
 
-  drawBottomCard(ctx, paymentInfo) {
-    const width = 720;
-
-    // Fond bleu marine
-    ctx.fillStyle = "#222d65";
-    ctx.beginPath();
-    ctx.roundRect(30, 350, width - 60, ctx.canvas.height - 365, 10);
-    ctx.fill();
-
-    // Style pour les lignes d'information
-    ctx.fillStyle = "#FFFFFF";
-    const startY = 400;
-    const lineHeight = 70;
-    const labelX = 70;
-    const valueX = 650;
-    const recipient = this.splitName(paymentInfo.recipient.toUpperCase());
-    // ;
-
-    // Dessiner les lignes d'information
-    this.drawInfoLine(
-      ctx,
-      "Référence",
-      paymentInfo.reference,
-      startY,
-      labelX,
-      valueX
-    );
-    this.drawInfoLine(
-      ctx,
-      "Montant",
-      paymentInfo.amount,
-      startY + lineHeight,
-      labelX,
-      valueX
-    );
-    this.drawInfoLine(
-      ctx,
-      "Date et Heure",
-      `${paymentInfo.date} à ${paymentInfo.time.substring(0, 5)}`,
-      startY + lineHeight * 2,
-      labelX,
-      valueX
-    );
-    this.drawInfoLine(
-      ctx,
-      "Bénéficiaire",
-      recipient,
-      startY + lineHeight * 3,
-      labelX,
-      valueX
-    );
-
-    // Ligne de séparation et texte du bas
-    const footerY = 780;
-    ctx.fillStyle = "#FFFFFF";
-    const footerText = "Pour faire une transaction, rendez-vous sur :";
-    ctx.font = "19px Verdana";
-    ctx.textAlign = "center";
-    ctx.fillText(footerText, ctx.canvas.width / 2, footerY);
-    ctx.font = "bold 20px Courier New";
-    ctx.fillText("bit.ly/miango", ctx.canvas.width / 2, footerY + 30);
-  }
-
-  drawInfoLine(ctx, label, value, y, labelX, valueX) {
-    ctx.textAlign = "left";
-    ctx.font = "24px Verdana";
-    ctx.fillStyle = "#FFFFFF";
-    ctx.fillText(label, labelX, value.includes("\n") ? y + 15 : y);
-
-    ctx.font = "bold 24px Verdana";
-    ctx.fillStyle = "#FFFFFF";
-    ctx.textAlign = "right";
+  generateInfoLine(label, value, y) {
     if (value.includes("\n")) {
-      const parts = value.split("\n");
-      ctx.fillText(parts[0], ctx.canvas.width - 70, y);
-      ctx.fillText(parts[1], ctx.canvas.width - 70, y + 30);
-    } else {
-      ctx.fillText(value, valueX, y);
+      const [part1, part2] = value.split("\n");
+      return `
+        <g>
+          <text x="70" y="${y + 15}" font-family="Verdana" font-size="24" fill="#FFFFFF">${label}</text>
+          <text x="${720 - 70}" y="${y}" font-family="Verdana" font-size="24" font-weight="bold" fill="#FFFFFF" text-anchor="end">${part1}</text>
+          <text x="${720 - 70}" y="${y + 30}" font-family="Verdana" font-size="24" font-weight="bold" fill="#FFFFFF" text-anchor="end">${part2}</text>
+          <line x1="70" y1="${y + 53}" x2="${650}" y2="${y + 53}" stroke="#dddddd" stroke-width="1"/>
+        </g>
+      `;
     }
 
-    // Ligne de séparation
-    ctx.strokeStyle = "#dddddd";
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(labelX, value.includes("\n") ? y + 53 : y + 28);
-    ctx.lineTo(valueX, value.includes("\n") ? y + 53 : y + 28);
-    ctx.stroke();
+    return `
+      <g>
+        <text x="70" y="${y}" font-family="Verdana" font-size="24" fill="#FFFFFF">${label}</text>
+        <text x="${650}" y="${y}" font-family="Verdana" font-size="24" font-weight="bold" fill="#FFFFFF" text-anchor="end">${value}</text>
+        <line x1="70" y1="${y + 28}" x2="${650}" y2="${y + 28}" stroke="#dddddd" stroke-width="1"/>
+      </g>
+    `;
   }
 
   splitName(str) {
-    if (str.length <= 25) return str; // Si la chaîne est courte, pas besoin de la diviser.
+    if (str.length <= 25) return str;
 
     const parts = str.split(" ");
-    const middle = Math.ceil(parts.length / 2); // Calcul du point médian en nombre de parts.
+    const middle = Math.ceil(parts.length / 2);
 
     const part1 = parts.slice(0, middle).join(" ");
     const part2 = parts.slice(middle).join(" ");

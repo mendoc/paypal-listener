@@ -44,19 +44,25 @@ export class TelegramService {
         paymentInfo
       );
 
-      // Créer un Buffer nommé
-      const namedBuffer = Object.assign(Buffer.from(imageBuffer), {
-        name: `paypal_receipt_${paymentInfo.reference}.png`,
-      });
+      console.log(`Taille de l'image : ${imageBuffer.length / 1024} KB`);
 
       // Message de notification
       const caption = `💸 Paiement PayPal envoyé !`;
 
       // Envoyer l'image avec la légende
-      await this.bot.sendPhoto(telegramConfig.chatId, namedBuffer, {
-        caption: caption,
-        parse_mode: "Markdown",
-      });
+      await this.bot.sendPhoto(
+        telegramConfig.chatId,
+        imageBuffer,
+        {},
+        {
+          caption: caption,
+          parse_mode: "Markdown",
+          // Explicitly specify the file name.
+          filename: `paypal_receipt_${paymentInfo.reference}.png`,
+          // Explicitly specify the MIME type.
+          contentType: "application/octet-stream",
+        }
+      );
     } catch (error) {
       console.error("Erreur lors de l'envoi de l'image Telegram:", error);
       // En cas d'erreur, on envoie au moins un message texte
@@ -84,4 +90,3 @@ export class TelegramService {
     }
   }
 }
-

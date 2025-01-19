@@ -1,6 +1,6 @@
-const { createCanvas, loadImage } = require("canvas");
+import { createCanvas, loadImage } from "canvas";
 
-class ImageGenerator {
+export class ImageGenerator {
   async generatePaymentImage(paymentInfo) {
     const width = 720;
     const height = 850;
@@ -177,5 +177,3 @@ class ImageGenerator {
     return part1 + "\n" + part2;
   }
 }
-
-export { ImageGenerator };

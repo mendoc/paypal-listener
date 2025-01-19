@@ -1,7 +1,7 @@
-const { google } = require("googleapis");
-const { gmail: gmailConfig } = require("./config");
+import { google } from "googleapis";
+import { gmail as gmailConfig } from "./config";
 
-class GmailService {
+export class GmailService {
   constructor() {
     this.oauth2Client = new google.auth.OAuth2(
       gmailConfig.clientId,
@@ -39,7 +39,7 @@ class GmailService {
             if (parsedEmail) {
               console.log("email:", parsedEmail);
               emails.push(parsedEmail);
-                await this.markAsRead(message.id);
+              await this.markAsRead(message.id);
             }
           }
         }
@@ -217,5 +217,3 @@ class GmailService {
     }
   }
 }
-
-export { GmailService };

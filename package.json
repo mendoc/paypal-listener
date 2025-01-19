@@ -1,0 +1,32 @@
+{
+  "name": "paypal-listener",
+  "version": "1.0.0",
+  "description": "Surveiller les emails de confirmation PayPal",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mendoc/paypal-listener.git"
+  },
+  "keywords": [
+    "PayPal",
+    "Gmail",
+    "Telegram",
+    "Node"
+  ],
+  "author": "Dimitri ONGOUA",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/mendoc/paypal-listener/issues"
+  },
+  "homepage": "https://github.com/mendoc/paypal-listener#readme",
+  "dependencies": {
+    "canvas": "^3.0.1",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "googleapis": "^144.0.0",
+    "node-telegram-bot-api": "^0.66.0"
+  }
+}

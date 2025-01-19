@@ -44,10 +44,3 @@ app.listen(port, () => {
     console.log(`Serveur démarré sur http://localhost:${port}`);
     console.log('Veuillez vous rendre sur http://localhost:3000 pour commencer l\'autorisation');
 });
-
-
-/*
-Refresh Token: 1//03penphUxiodXCgYIARAAGAMSNwF-L9IrWTI4NiwHRHMhkHUXjvfWm1An_HbHvOZJIm78Er5Nqb-_E_lCegKlhwNptk2hhKwelpQ
-Access Token: ya29.a0ARW5m74mKoGXNdpITTvUcAd6wDC5JEPCVR3c40nMJ7DNI-xq-JwGxSU_HJWDsW-EWapP71PhAe9L4SvV47Antw4HHfb2FIyAbA67qlaBtd4hsRYvD1OM5euW9WWiXxRr6Ec3s2K1NwZauvOgXwIe2dYwN8LdUZaVKpNzbqEsaCgYKAbsSARESFQHGX2Mi6wQVrZ2LdGYCBY1njf1WMw0175
-
-*/

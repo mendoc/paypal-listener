@@ -125,12 +125,29 @@ export class GmailService {
     };
 
     // Extraction du nom de l'expéditeur
-    const senderMatch = emailContent.match(/(\w+\s\w+)\s+vous a envoyé/);
+    const senderMatch = emailContent.match(/(\w+\s+\w+)\s+vous a envoyé/);
     if (senderMatch) result.sender = senderMatch[1];
 
-    // Extraction du montant
-    const amountMatch = emailContent.match(/vous a envoyé\s([\d,]+\s€)/);
-    if (amountMatch) result.amount = amountMatch[1];
+    // Extraction des frais
+    const feesMatch = emailContent.match(
+      /Frais<\/strong><\/td>\s*<td[^>]*>([^<]+)/
+    );
+    if (feesMatch) {
+      result.fees = feesMatch[1].trim();
+      // Si il y a des frais, on cherche le total qui sera le vrai montant reçu
+      const totalMatch = emailContent.match(
+        /Total<\/strong><\/td>\s*<td[^>]*>([^<]+)/
+      );
+      if (totalMatch) {
+        result.amount = totalMatch[1].trim();
+      }
+    } else {
+      // Pas de frais, on extrait le montant directement
+      const amountMatch = emailContent.match(
+        /vous a envoyé\s([\d,]+\s*€\s*EUR)/
+      );
+      if (amountMatch) result.amount = amountMatch[1];
+    }
 
     // Extraction de la date
     const dateMatch = emailContent.match(

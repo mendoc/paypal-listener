@@ -18,11 +18,13 @@ export class TelegramService {
   }
 
   async sendReceivedPaymentNotification(paymentInfo) {
+    const fees = paymentInfo.fees || "0,00 € EUR";
     const message = `
 💰 Nouveau paiement PayPal reçu !
 
 👤 De : ${paymentInfo.sender}
 💵 Montant : *${paymentInfo.amount}*
+💳 Frais : *${fees}*
 📅 Date : ${paymentInfo.date}
 🕒 Heure : ${paymentInfo.time}
 🔢 Référence : ${paymentInfo.reference}

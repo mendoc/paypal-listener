@@ -12,12 +12,18 @@ export default async (request, context) => {
 
     const { emails, error, errorCode } =
       await gmailService.checkNewPayPalEmails();
-    console.log("[/checkpaypalpayments]", "error", error, "errorCode", errorCode);
+    console.log(
+      "[/checkpaypalpayments]",
+      "error",
+      error,
+      "errorCode",
+      errorCode
+    );
 
     if (error && errorCode === 1) {
       const oauth2Service = new OAuth2Service();
       const authUrl = oauth2Service.getAuthUrl();
-      await telegramService.sendErrorMessage(
+      await telegramService.sendMessage(
         `Token expiré. \nURL d'authentification : \n${authUrl}`
       );
     } else {

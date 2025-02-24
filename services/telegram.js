@@ -1,7 +1,6 @@
 import TelegramBot from "node-telegram-bot-api";
 import { telegram as telegramConfig } from "./config";
 import { ImageGenerator } from "./ImageGenerator";
-import { Buffer } from "buffer";
 
 export class TelegramService {
   constructor() {
@@ -107,7 +106,7 @@ export class TelegramService {
     }
   }
 
-  async sendErrorMessage(message) {
+  async sendMessage(message) {
     try {
       await this.bot.sendMessage(telegramConfig.chatId, message, {
         parse_mode: "HTML",

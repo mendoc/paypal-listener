@@ -1,24 +1,31 @@
 import { OAuth2Service } from "../../../services/OAuth2";
 import { DatabaseService } from "../../../services/database";
+import { TelegramService } from "../../../services/telegram";
 
 export default async (request, context) => {
   try {
+    const telegramService = new TelegramService();
     const oauth2Service = new OAuth2Service();
     const databaseService = new DatabaseService();
 
-    const url = new URL(request.url)
-    const code = url.searchParams.get('code') || 'World'
+    const url = new URL(request.url);
+    const code = url.searchParams.get("code") || "World";
 
     const { tokens } = await oauth2Service.getToken(code);
     console.log("[/oauth2callback] Refresh Token:", tokens.refresh_token);
 
     await databaseService.updateToken(tokens.refresh_token);
 
+    await telegramService.sendMessage(`Token mis à jour avec succès`);
+
     return new Response(
       "Token mis à jour avec succès ! Vous pouvez fermer cette fenêtre."
     );
   } catch (error) {
-    console.error("[/oauth2callback] Erreur lors de l'obtention du token:", error);
+    console.error(
+      "[/oauth2callback] Erreur lors de l'obtention du token:",
+      error
+    );
     return new Response(error.toString(), {
       status: 500,
     });

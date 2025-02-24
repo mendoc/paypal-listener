@@ -1,18 +1,34 @@
 import { GmailService } from "../../../services/gmail";
 import { TelegramService } from "../../../services/telegram";
+import { OAuth2Service } from "../../../services/OAuth2";
+import { DatabaseService } from "../../../services/database";
 
 export default async (request, context) => {
   try {
-    const gmailService = new GmailService();
     const telegramService = new TelegramService();
+    const databaseService = new DatabaseService();
+    const refreshToken = await databaseService.getToken();
+    const gmailService = new GmailService(refreshToken);
 
-    const emails = await gmailService.checkNewPayPalEmails();
-    for (const email of emails) {
-      await telegramService.sendPayPalNotification(email);
+    const { emails, error, errorCode } =
+      await gmailService.checkNewPayPalEmails();
+    console.log("[/checkpaypalpayments]", "error", error, "errorCode", errorCode);
+
+    if (error && errorCode === 1) {
+      const oauth2Service = new OAuth2Service();
+      const authUrl = oauth2Service.getAuthUrl();
+      await telegramService.sendErrorMessage(
+        `Token expiré. \nURL d'authentification : \n${authUrl}`
+      );
+    } else {
+      console.log("[/checkpaypalpayments]", "emails count", emails.length);
+      for (const email of emails) {
+        await telegramService.sendPayPalNotification(email);
+      }
     }
 
     return Response.json(
-      { "bulk length": emails.length },
+      { "bulk length": emails ? emails.length : 0 },
       {
         headers: {
           "Access-Control-Allow-Origin": "*",

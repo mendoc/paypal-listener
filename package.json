@@ -7,7 +7,8 @@
     "dev": "netlify dev",
     "start": "netlify functions:serve",
     "build": "netlify functions:build",
-    "create": "netlify functions:create"
+    "create": "netlify functions:create",
+    "token": "node getRefreshToken.js"
   },
   "repository": {
     "type": "git",
@@ -31,6 +32,7 @@
     "googleapis": "^144.0.0",
     "netlify-cli": "^18.0.1",
     "node-telegram-bot-api": "^0.66.0",
+    "pg": "^8.13.3",
     "sharp": "^0.33.5"
   }
 }

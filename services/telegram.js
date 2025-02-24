@@ -35,7 +35,11 @@ export class TelegramService {
         parse_mode: "Markdown",
       });
     } catch (error) {
-      console.error("Erreur lors de l'envoi du message Telegram:", error);
+      console.error(
+        "[sendReceivedPaymentNotification@TelegramService]",
+        "Erreur lors de l'envoi du message Telegram:",
+        error
+      );
     }
   }
 
@@ -46,7 +50,10 @@ export class TelegramService {
         paymentInfo
       );
 
-      console.log(`Taille de l'image : ${imageBuffer.length / 1024} KB`);
+      console.log(
+        "[sendSentPaymentNotification@TelegramService]",
+        `Taille de l'image : ${imageBuffer.length / 1024} KB`
+      );
 
       // Message de notification
       const caption = `💸 Paiement PayPal envoyé !`;
@@ -66,7 +73,11 @@ export class TelegramService {
         }
       );
     } catch (error) {
-      console.error("Erreur lors de l'envoi de l'image Telegram:", error);
+      console.error(
+        "[sendSentPaymentNotification@TelegramService]",
+        "Erreur lors de l'envoi de l'image Telegram:",
+        error
+      );
       // En cas d'erreur, on envoie au moins un message texte
       await this.sendFallbackMessage(paymentInfo);
     }
@@ -88,7 +99,25 @@ export class TelegramService {
         parse_mode: "Markdown",
       });
     } catch (error) {
-      console.error("Erreur lors de l'envoi du message de secours:", error);
+      console.error(
+        "[sendFallbackMessage@TelegramService]",
+        "Erreur lors de l'envoi du message de secours:",
+        error
+      );
+    }
+  }
+
+  async sendErrorMessage(message) {
+    try {
+      await this.bot.sendMessage(telegramConfig.chatId, message, {
+        parse_mode: "HTML",
+      });
+    } catch (error) {
+      console.error(
+        "[sendErrorMessage@TelegramService]",
+        "Erreur lors de l'envoi du message de secours:",
+        error
+      );
     }
   }
 }

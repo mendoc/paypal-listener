@@ -2,21 +2,24 @@ import { google } from "googleapis";
 import { gmail as gmailConfig } from "./config";
 
 export class GmailService {
-  constructor() {
+  constructor(refreshToken) {
     this.oauth2Client = new google.auth.OAuth2(
       gmailConfig.clientId,
       gmailConfig.clientSecret,
       gmailConfig.redirectUri
     );
 
+    this.refreshToken = refreshToken;
+
     this.oauth2Client.setCredentials({
-      refresh_token: gmailConfig.refreshToken,
+      refresh_token: this.refreshToken,
     });
 
     this.gmail = google.gmail({ version: "v1", auth: this.oauth2Client });
   }
 
   async checkNewPayPalEmails() {
+    let emails = [];
     try {
       const response = await this.gmail.users.messages.list({
         userId: "me",
@@ -24,10 +27,10 @@ export class GmailService {
       });
 
       if (!response.data.messages) {
-        return [];
+        return { emails };
       }
 
-      const emails = [];
+      let amountSum = 0;
       for (const message of response.data.messages) {
         const emailData = await this.getEmailData(message.id);
         if (emailData) {
@@ -37,7 +40,15 @@ export class GmailService {
           if (emailType) {
             const parsedEmail = this.parsePayPalEmail(emailType, date, content);
             if (parsedEmail) {
-              console.log("email:", parsedEmail);
+              const currentAmount = parseFloat(
+                parsedEmail.amount?.split(" ")[0].trim().replace(",", ".")
+              );
+              amountSum += currentAmount * (emailType === "received" ? 1 : -1);
+              console.log(
+                "[checkNewPayPalEmails@GmailService]",
+                "email:",
+                parsedEmail
+              );
               emails.push(parsedEmail);
               await this.markAsRead(message.id);
             }
@@ -45,10 +56,26 @@ export class GmailService {
         }
       }
 
-      return emails;
+      amountSum = amountSum.toFixed(2);
+      console.log(
+        "[checkNewPayPalEmails@GmailService]",
+        "final amountSum:",
+        amountSum
+      );
+
+      return { emails };
     } catch (error) {
-      console.error("Erreur lors de la vérification des emails:", error);
-      return [];
+      let errorCode = 0;
+      let errorMsg = "";
+      if (error.toString().includes("invalid_grant")) {
+        errorCode = 1;
+        errorMsg = "Token expiré";
+      } else {
+        errorCode = 2;
+        errorMsg = `Erreur lors de la vérification des emails: ${errorMsg.toString()}`;
+      }
+      console.error("[checkNewPayPalEmails@GmailService]", errorMsg);
+      return { error: true, errorCode };
     }
   }
 
@@ -85,7 +112,11 @@ export class GmailService {
 
       return { content, date, subject };
     } catch (error) {
-      console.error("Erreur lors de la récupération de l'email:", error);
+      console.error(
+        "[getEmailData@GmailService]",
+        "Erreur lors de la récupération de l'email:",
+        error
+      );
       return null;
     }
   }
@@ -230,7 +261,11 @@ export class GmailService {
         },
       });
     } catch (error) {
-      console.error("Erreur lors du marquage comme lu:", error);
+      console.error(
+        "[markAsRead@GmailService]",
+        "Erreur lors du marquage comme lu:",
+        error
+      );
     }
   }
 }

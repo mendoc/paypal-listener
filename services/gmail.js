@@ -57,13 +57,8 @@ export class GmailService {
       }
 
       amountSum = amountSum.toFixed(2);
-      console.log(
-        "[checkNewPayPalEmails@GmailService]",
-        "final amountSum:",
-        amountSum
-      );
 
-      return { emails };
+      return { emails, amountSum };
     } catch (error) {
       let errorCode = 0;
       let errorMsg = "";

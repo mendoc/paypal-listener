@@ -4,13 +4,14 @@ import { OAuth2Service } from "../../../services/OAuth2";
 import { DatabaseService } from "../../../services/database";
 
 export default async (request, context) => {
+  const databaseService = new DatabaseService();
+
   try {
     const telegramService = new TelegramService();
-    const databaseService = new DatabaseService();
     const refreshToken = await databaseService.getToken();
     const gmailService = new GmailService(refreshToken);
 
-    const { emails, error, errorCode } =
+    const { emails, amountSum, error, errorCode } =
       await gmailService.checkNewPayPalEmails();
     console.log(
       "[/checkpaypalpayments]",
@@ -28,6 +29,19 @@ export default async (request, context) => {
       );
     } else {
       console.log("[/checkpaypalpayments]", "emails count", emails.length);
+      console.log("[/checkpaypalpayments]", "amountSum", amountSum);
+      const payPalBalance = await databaseService.getPayPalBalance();
+      const newPayPalBalance = (
+        parseFloat(amountSum) + parseFloat(payPalBalance)
+      ).toFixed(2);
+      console.log("[/checkpaypalpayments]", "payPalBalance", payPalBalance);
+      console.log(
+        "[/checkpaypalpayments]",
+        "newPayPalBalance",
+        newPayPalBalance
+      );
+      await databaseService.updatePayPalBalance(newPayPalBalance);
+      
       for (const email of emails) {
         await telegramService.sendPayPalNotification(email);
       }
@@ -45,6 +59,8 @@ export default async (request, context) => {
     return new Response(error.toString(), {
       status: 500,
     });
+  } finally {
+    await databaseService.closeConnection();
   }
 };
 

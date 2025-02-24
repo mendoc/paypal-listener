@@ -8,10 +8,26 @@ export class DatabaseService {
     this.pool = new Pool(dbConfig);
   }
 
+  async getToken() {
+    return await this.getConfig("token");
+  }
+
+  async getPayPalBalance() {
+    return await this.getConfig("balancepp");
+  }
+
+  async updatePayPalBalance(amount) {
+    return await this.updateConfig("balancepp", amount);
+  }
+
   async updateToken(token) {
+    return await this.updateConfig("token", token);
+  }
+
+  async updateConfig(name, value) {
     try {
-      const query = "UPDATE config SET value = $1 WHERE name = 'token'";
-      const values = [token];
+      const query = "UPDATE config SET value = $2 WHERE name = $1";
+      const values = [name, value];
 
       const result = await this.pool.query(query, values);
       console.log("[updateToken@DatabaseService] Mise à jour réussie");
@@ -22,17 +38,18 @@ export class DatabaseService {
         error
       );
       throw error;
-    } finally {
-      await this.pool.end();
     }
   }
 
-  async getToken() {
+  async getConfig(name) {
     try {
-      const query = "SELECT value FROM config WHERE name = 'token'";
+      const query = "SELECT value FROM config WHERE name = $1";
+      const values = [name];
 
-      const result = await this.pool.query(query);
-      console.log("[getToken@DatabaseService] Récupération du token réussie");
+      const result = await this.pool.query(query, values);
+      console.log(
+        `[getConfig@DatabaseService] Récupération du parametre [${name}] réussie`
+      );
 
       // Si aucune ligne n'est trouvée, retourne null
       if (result.rows.length === 0) {
@@ -42,12 +59,23 @@ export class DatabaseService {
       return result.rows[0].value;
     } catch (error) {
       console.error(
-        "[getToken@DatabaseService] Erreur lors de la récupération du token.",
+        `[getConfig@DatabaseService] Erreur lors de la récupération du parametre [${name}].`,
         error
       );
       throw error;
-    } finally {
+    }
+  }
+
+  async closeConnection() {
+    try {
       await this.pool.end();
+      console.log("[DatabaseService] Connexion à la base de données fermée");
+    } catch (error) {
+      console.error(
+        "[DatabaseService] Erreur lors de la fermeture de la connexion",
+        error
+      );
+      throw error;
     }
   }
 }

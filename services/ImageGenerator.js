@@ -38,6 +38,7 @@ export class ImageGenerator {
           <text x="${width/2}" y="190" font-family="Arial" font-size="30" font-weight="bold" fill="#24ae89" text-anchor="middle">Transfert effectué</text>
           <text x="${width/2}" y="240" font-family="Verdana" font-size="24" fill="#222d65" text-anchor="middle">Le montant de ${paymentInfo.amount} a été envoyé à</text>
           <text x="${width/2}" y="275" font-family="Verdana" font-size="24" fill="#222d65" text-anchor="middle">${paymentInfo.recipient.toUpperCase()}</text>
+          <text x="${width/2}" y="310" font-family="Verdana" font-size="24" fill="#cccccc" text-anchor="middle">${paymentInfo.internalReference ? paymentInfo.internalReference : ""}</text>
 
           <!-- Carte inférieure -->
           <rect x="30" y="350" width="${width - 60}" height="${height - 365}" rx="10" fill="#222d65"/>

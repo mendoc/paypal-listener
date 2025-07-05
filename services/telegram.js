@@ -83,19 +83,23 @@ export class TelegramService {
   }
 
   async sendFallbackMessage(paymentInfo) {
-    const message = `
+    let message = `
 💸 Paiement PayPal envoyé !
 
 👤 À : ${paymentInfo.recipient}
 💵 Montant : *${paymentInfo.amount}*
 📅 Date : ${paymentInfo.date}
 🕒 Heure : ${paymentInfo.time}
-🔢 Référence : ${paymentInfo.reference}
-`;
+🔢 Référence : ${paymentInfo.reference}`;
+
+    if (paymentInfo.internalReference) {
+      message += `
+🔢 Référence interne : ${paymentInfo.internalReference}`;
+    }
 
     try {
       await this.bot.sendMessage(telegramConfig.chatId, message, {
-        parse_mode: "Markdown",
+        parse_mode: "Markdown"
       });
     } catch (error) {
       console.error(

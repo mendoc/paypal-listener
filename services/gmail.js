@@ -1,5 +1,5 @@
 import { google } from "googleapis";
-import { gmail as gmailConfig } from "./config";
+import { gmail as gmailConfig } from "./config.js";
 
 export class GmailService {
   constructor(refreshToken) {
@@ -242,6 +242,9 @@ export class GmailService {
       /Numéro de transaction<\/strong><\/span><br \/><a.*?><span>(.*?)<\/span><\/a>/
     );
     if (referenceMatch) result.reference = referenceMatch[1];
+
+    const internalReferenceMatch = emailContent.match(/>(GF\d{4}[A-Z]\d{4})</);
+    if (internalReferenceMatch) result.internalReference = internalReferenceMatch[1];
 
     return result;
   }

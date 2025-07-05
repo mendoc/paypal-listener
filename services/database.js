@@ -66,6 +66,32 @@ export class DatabaseService {
     }
   }
 
+  async markSimulationAsProcessed(reference) {
+    try {
+      const query = "UPDATE simulations SET statut = 1, updated_at = NOW() WHERE reference = $1 AND statut = 0";
+      const values = [reference];
+
+      const result = await this.pool.query(query, values);
+      if (result.rowCount === 1) {
+        console.log(`[markSimulationAsProcessed@DatabaseService] Simulation ${reference} marquée comme traitée.`);
+        return { success: true, message: "Transaction marquée comme traitée." };
+      } else if (result.rowCount === 0) {
+        console.log(`[markSimulationAsProcessed@DatabaseService] Transaction ${reference} non trouvée ou déjà traitée.`);
+        return { success: false, message: "Transaction non trouvée ou déjà traitée." };
+      } else {
+        // Should not happen with a unique reference
+        console.error(`[markSimulationAsProcessed@DatabaseService] Erreur inattendue: plusieurs transactions ${reference} mises à jour.`);
+        return { success: false, message: "Erreur inattendue lors de la mise à jour." };
+      }
+    } catch (error) {
+      console.error(
+        `[markSimulationAsProcessed@DatabaseService] Erreur lors de la mise à jour de la simulation ${reference}.`,
+        error
+      );
+      return { success: false, message: `Erreur lors de la mise à jour: ${error.message}` };
+    }
+  }
+
   async closeConnection() {
     try {
       await this.pool.end();

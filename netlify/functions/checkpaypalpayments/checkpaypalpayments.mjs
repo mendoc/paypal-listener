@@ -44,6 +44,19 @@ export default async (request, context) => {
       
       for (const email of emails) {
         await telegramService.sendPayPalNotification(email);
+        if (email.internalReference) {
+          try {
+            const result = await databaseService.markSimulationAsProcessed(email.internalReference);
+            if (result.success) {
+              await telegramService.sendMessage(`✅ Transaction ${email.internalReference} marquée comme traitée.`);
+            } else {
+              await telegramService.sendMessage(`❌ Impossible de marquer la transaction ${email.internalReference} comme traitée : ${result.message}`);
+            }
+          } catch (error) {
+            console.error(`Erreur inattendue lors du traitement de la transaction ${email.internalReference}:`, error);
+            await telegramService.sendMessage(`❌ Erreur inattendue lors du traitement de la transaction ${email.internalReference}.`);
+          }
+        }
       }
     }
 

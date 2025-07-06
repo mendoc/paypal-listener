@@ -8,9 +8,9 @@ export class TelegramService {
     this.imageGenerator = new ImageGenerator();
   }
 
-  async sendPayPalNotification(paymentInfo) {
+  async sendPayPalNotification(paymentInfo, imageBuffer = null) {
     if (paymentInfo.type === "sent") {
-      await this.sendSentPaymentNotification(paymentInfo);
+      await this.sendSentPaymentNotification(paymentInfo, imageBuffer);
     } else {
       await this.sendReceivedPaymentNotification(paymentInfo);
     }
@@ -42,12 +42,14 @@ export class TelegramService {
     }
   }
 
-  async sendSentPaymentNotification(paymentInfo) {
+  async sendSentPaymentNotification(paymentInfo, imageBuffer = null) {
     try {
-      // Générer l'image
-      const imageBuffer = await this.imageGenerator.generatePaymentImage(
-        paymentInfo
-      );
+      // Générer l'image si elle n'est pas fournie
+      if (!imageBuffer) {
+        imageBuffer = await this.imageGenerator.generatePaymentImage(
+          paymentInfo
+        );
+      }
 
       console.log(
         "[sendSentPaymentNotification@TelegramService]",

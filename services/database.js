@@ -66,10 +66,18 @@ export class DatabaseService {
     }
   }
 
-  async markSimulationAsProcessed(reference) {
+  async markSimulationAsProcessed(reference, capture = null) {
     try {
-      const query = "UPDATE simulations SET statut = 1, updated_at = NOW() WHERE reference = $1 AND statut = 0";
-      const values = [reference];
+      let query;
+      let values;
+
+      if (capture) {
+        query = "UPDATE simulations SET statut = 1, capture = $2, updated_at = NOW(), gerele = NOW() WHERE reference = $1 AND statut = 0";
+        values = [reference, capture];
+      } else {
+        query = "UPDATE simulations SET statut = 1, updated_at = NOW(), gerele = NOW() WHERE reference = $1 AND statut = 0";
+        values = [reference];
+      }
 
       const result = await this.pool.query(query, values);
       if (result.rowCount === 1) {
@@ -89,6 +97,26 @@ export class DatabaseService {
         error
       );
       return { success: false, message: `Erreur lors de la mise à jour: ${error.message}` };
+    }
+  }
+
+  async getSimulation(reference) {
+    try {
+      const query = "SELECT whatsapp FROM simulations WHERE reference = $1";
+      const values = [reference];
+
+      const result = await this.pool.query(query, values);
+      if (result.rows.length > 0) {
+        return result.rows[0];
+      } else {
+        return null;
+      }
+    } catch (error) {
+      console.error(
+        `[getSimulation@DatabaseService] Erreur lors de la récupération de la simulation ${reference}.`,
+        error
+      );
+      throw error;
     }
   }
 

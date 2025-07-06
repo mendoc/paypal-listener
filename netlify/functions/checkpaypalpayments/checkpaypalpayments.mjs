@@ -2,12 +2,21 @@ import { GmailService } from "../../../services/gmail";
 import { TelegramService } from "../../../services/telegram";
 import { OAuth2Service } from "../../../services/OAuth2";
 import { DatabaseService } from "../../../services/database";
+import { ImageGenerator } from "../../../services/ImageGenerator";
+import { FirestoreService } from "../../../services/firestore";
 
 export default async (request, context) => {
   const databaseService = new DatabaseService();
+  let firestoreService;
 
   try {
+    // Initialiser FirestoreService seulement si la configuration est disponible
+    if (process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
+      firestoreService = new FirestoreService();
+    }
+
     const telegramService = new TelegramService();
+    const imageGenerator = new ImageGenerator();
     const refreshToken = await databaseService.getToken();
     const gmailService = new GmailService(refreshToken);
 
@@ -25,7 +34,7 @@ export default async (request, context) => {
       const oauth2Service = new OAuth2Service();
       const authUrl = oauth2Service.getAuthUrl();
       await telegramService.sendMessage(
-        `Token expiré. \nURL d'authentification : \n${authUrl}`
+        `Token expiré. \nURL d\'authentification : \n${authUrl}`
       );
     } else {
       console.log("[/checkpaypalpayments]", "emails count", emails.length);
@@ -43,12 +52,27 @@ export default async (request, context) => {
       await databaseService.updatePayPalBalance(newPayPalBalance);
       
       for (const email of emails) {
-        await telegramService.sendPayPalNotification(email);
+        const image = await imageGenerator.generatePaymentImage(email);
+        await telegramService.sendPayPalNotification(email, image);
         if (email.internalReference) {
           try {
-            const result = await databaseService.markSimulationAsProcessed(email.internalReference);
+            const simulation = await databaseService.getSimulation(email.internalReference);
+            let capture = null;
+            let shouldEmitEvent = false;
+
+            if (simulation && simulation.whatsapp) {
+              capture = image.toString("base64");
+              shouldEmitEvent = true;
+            }
+
+            const result = await databaseService.markSimulationAsProcessed(email.internalReference, capture);
+
             if (result.success) {
               await telegramService.sendMessage(`✅ Transaction ${email.internalReference} marquée comme traitée.`);
+              // Émettre l'événement Firestore si nécessaire
+              if (shouldEmitEvent && firestoreService) {
+                await firestoreService.emitCaptureSaved("function-checkpaypalpayments", email.internalReference, simulation.whatsapp);
+              }
             } else {
               await telegramService.sendMessage(`❌ Impossible de marquer la transaction ${email.internalReference} comme traitée : ${result.message}`);
             }
@@ -76,6 +100,7 @@ export default async (request, context) => {
     await databaseService.closeConnection();
   }
 };
+
 
 export const config = {
   path: "/checkpaypalpayments",

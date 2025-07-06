@@ -50,8 +50,14 @@ export default async (request, context) => {
         newPayPalBalance
       );
       await databaseService.updatePayPalBalance(newPayPalBalance);
-      
+
       for (const email of emails) {
+
+        if (email.type === "received") {
+          await telegramService.sendPayPalNotification(email);
+          continue;
+        }
+
         const image = await imageGenerator.generatePaymentImage(email);
         await telegramService.sendPayPalNotification(email, image);
         if (email.internalReference) {

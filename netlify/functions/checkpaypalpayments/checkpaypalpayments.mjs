@@ -36,7 +36,7 @@ export default async (request, context) => {
       await telegramService.sendMessage(
         `Token expiré. \nURL d\'authentification : \n${authUrl}`
       );
-    } else {
+    } else if (emails && emails.length > 0) {
       console.log("[/checkpaypalpayments]", "emails count", emails.length);
       console.log("[/checkpaypalpayments]", "amountSum", amountSum);
       const payPalBalance = await databaseService.getPayPalBalance();

@@ -11,6 +11,8 @@ export class TelegramService {
   async sendPayPalNotification(paymentInfo, imageBuffer = null) {
     if (paymentInfo.type === "sent") {
       await this.sendSentPaymentNotification(paymentInfo, imageBuffer);
+    } else if (paymentInfo.type === "subscription") {
+      await this.sendSubscriptionPaymentNotification(paymentInfo);
     } else {
       await this.sendReceivedPaymentNotification(paymentInfo);
     }
@@ -36,6 +38,31 @@ export class TelegramService {
     } catch (error) {
       console.error(
         "[sendReceivedPaymentNotification@TelegramService]",
+        "Erreur lors de l'envoi du message Telegram:",
+        error
+      );
+    }
+  }
+
+  async sendSubscriptionPaymentNotification(paymentInfo) {
+    const message = `
+🔔 Paiement d'abonnement PayPal !
+
+🏪 Marchand : ${paymentInfo.merchant}
+💵 Montant : *${paymentInfo.amount}*
+📅 Date : ${paymentInfo.date}
+🕒 Heure : ${paymentInfo.time}
+🔢 N° de commande : ${paymentInfo.orderNumber}
+🔢 Référence : ${paymentInfo.reference}
+`;
+
+    try {
+      await this.bot.sendMessage(telegramConfig.chatId, message, {
+        parse_mode: "Markdown",
+      });
+    } catch (error) {
+      console.error(
+        "[sendSubscriptionPaymentNotification@TelegramService]",
         "Erreur lors de l'envoi du message Telegram:",
         error
       );

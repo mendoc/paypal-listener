@@ -53,7 +53,7 @@ export default async (request, context) => {
 
       for (const email of emails) {
 
-        if (email.type === "received") {
+        if (email.type === "received" || email.type === "subscription") {
           await telegramService.sendPayPalNotification(email);
           continue;
         }

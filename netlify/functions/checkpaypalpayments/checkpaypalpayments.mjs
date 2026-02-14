@@ -58,7 +58,8 @@ export default async (request, context) => {
 
           if (email.type === "subscription") {
             try {
-              const montant = email.amount?.replace(/[^\d,]/g, "").replace(",", ".");
+              const montantEur = parseFloat(email.amount?.replace(/[^\d,]/g, "").replace(",", "."));
+              const montant = Math.round(montantEur * 656);
               const categorie = `Abonnement ${email.merchant}`;
               const res = await fetch("https://miango.netlify.app/addexpense", {
                 method: "POST",
@@ -67,8 +68,16 @@ export default async (request, context) => {
               });
               const result = await res.json();
               console.log("[/checkpaypalpayments]", "dépense enregistrée:", result);
+              if (result.success) {
+                await telegramService.sendMessage(
+                  `✅ Dépense enregistrée !\n\n📂 Catégorie : ${categorie}\n💰 Montant : ${montant.toLocaleString("fr-FR")} FCFA (${montantEur} €)`
+                );
+              } else {
+                await telegramService.sendMessage(`❌ Échec de l'enregistrement de la dépense pour ${email.merchant}.`);
+              }
             } catch (err) {
               console.error("[/checkpaypalpayments]", "erreur enregistrement dépense:", err);
+              await telegramService.sendMessage(`❌ Erreur lors de l'enregistrement de la dépense pour ${email.merchant}.`);
             }
           }
 

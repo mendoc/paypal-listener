@@ -267,14 +267,6 @@ export class GmailService {
       result.merchant = mainMatch[2].trim();
     }
 
-    // Extraction de la date depuis le tableau HTML
-    // Format Netflix : Date de la transaction</span></span></td><td><span><span>valeur
-    // Format Airbnb  : Date de la transaction</strong></span><br><span><span>valeur
-    const dateMatch = emailContent.match(
-      /Date de la transaction<\/(?:span|strong)><\/span>(?:<\/td>\s*<td[^>]*>|<br>)<span[^>]*><span>([^<]+)/
-    );
-    if (dateMatch) result.date = dateMatch[1].trim();
-
     // Extraction du n° de commande ou numéro de facture
     const orderMatch = emailContent.match(
       /(?:N° de commande|Numéro de facture)<\/(?:span|strong)><\/span>(?:<\/td>\s*<td[^>]*>|<br>)<span[^>]*><span>([^<]+)/
@@ -287,17 +279,18 @@ export class GmailService {
     );
     if (referenceMatch) result.reference = referenceMatch[1];
 
-    // Extraction de l'heure avec formatage
+    // Extraction de la date et de l'heure depuis le header de l'email
     const emailDateMatch = emailDate.match(
-      /\w+, \d+ \w+ \d+ (\d{2}):(\d{2}):\d{2} ([-+]\d{4})/
+      /\w+, (\d+) (\w+) (\d+) (\d{2}):(\d{2}):\d{2} ([-+]\d{4})/
     );
     if (emailDateMatch) {
-      const [hours, minutes] = emailDateMatch.slice(1, 3).map(Number);
-      const timezoneOffset = parseInt(emailDateMatch[3], 10) / 100;
-      const adjustedHours = (hours + 1 - timezoneOffset + 24) % 24;
-      result.time = `${String(adjustedHours).padStart(2, "0")}:${String(
-        minutes
-      ).padStart(2, "0")}`;
+      const [, day, monthStr, year, hours, minutes] = emailDateMatch;
+      const timezoneOffset = parseInt(emailDateMatch[6], 10) / 100;
+      const adjustedHours = (Number(hours) + 1 - timezoneOffset + 24) % 24;
+      const months = { Jan: "01", Feb: "02", Mar: "03", Apr: "04", May: "05", Jun: "06", Jul: "07", Aug: "08", Sep: "09", Oct: "10", Nov: "11", Dec: "12" };
+      const month = months[monthStr] || "01";
+      result.date = `${day.padStart(2, "0")}/${month}/${year}`;
+      result.time = `${String(adjustedHours).padStart(2, "0")}:${minutes}`;
     }
 
     return result;

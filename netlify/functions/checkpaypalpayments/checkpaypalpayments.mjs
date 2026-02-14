@@ -55,6 +55,23 @@ export default async (request, context) => {
 
         if (email.type === "received" || email.type === "subscription") {
           await telegramService.sendPayPalNotification(email);
+
+          if (email.type === "subscription") {
+            try {
+              const montant = email.amount?.replace(/[^\d,]/g, "").replace(",", ".");
+              const categorie = `Abonnement ${email.merchant}`;
+              const res = await fetch("https://miango.netlify.app/addexpense", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ montant, categorie }),
+              });
+              const result = await res.json();
+              console.log("[/checkpaypalpayments]", "dépense enregistrée:", result);
+            } catch (err) {
+              console.error("[/checkpaypalpayments]", "erreur enregistrement dépense:", err);
+            }
+          }
+
           continue;
         }
 

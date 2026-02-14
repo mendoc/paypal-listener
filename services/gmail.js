@@ -287,9 +287,9 @@ export class GmailService {
       const [, day, monthStr, year, hours, minutes] = emailDateMatch;
       const timezoneOffset = parseInt(emailDateMatch[6], 10) / 100;
       const adjustedHours = (Number(hours) + 1 - timezoneOffset + 24) % 24;
-      const months = { Jan: "01", Feb: "02", Mar: "03", Apr: "04", May: "05", Jun: "06", Jul: "07", Aug: "08", Sep: "09", Oct: "10", Nov: "11", Dec: "12" };
-      const month = months[monthStr] || "01";
-      result.date = `${day.padStart(2, "0")}/${month}/${year}`;
+      const months = { Jan: "janvier", Feb: "février", Mar: "mars", Apr: "avril", May: "mai", Jun: "juin", Jul: "juillet", Aug: "août", Sep: "septembre", Oct: "octobre", Nov: "novembre", Dec: "décembre" };
+      const month = months[monthStr] || monthStr;
+      result.date = `${Number(day)} ${month} ${year}`;
       result.time = `${String(adjustedHours).padStart(2, "0")}:${minutes}`;
     }
 

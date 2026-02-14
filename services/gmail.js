@@ -268,14 +268,16 @@ export class GmailService {
     }
 
     // Extraction de la date depuis le tableau HTML
+    // Format Netflix : Date de la transaction</span></span></td><td><span><span>valeur
+    // Format Airbnb  : Date de la transaction</strong></span><br><span><span>valeur
     const dateMatch = emailContent.match(
-      /Date de la transaction<\/span><\/span><\/td>\s*<td[^>]*><span[^>]*><span>([^<]+)/
+      /Date de la transaction<\/(?:span|strong)><\/span>(?:<\/td>\s*<td[^>]*>|<br>)<span[^>]*><span>([^<]+)/
     );
     if (dateMatch) result.date = dateMatch[1].trim();
 
-    // Extraction du n° de commande
+    // Extraction du n° de commande ou numéro de facture
     const orderMatch = emailContent.match(
-      /N° de commande<\/span><\/span><\/td>\s*<td[^>]*><span[^>]*><span>([^<]+)/
+      /(?:N° de commande|Numéro de facture)<\/(?:span|strong)><\/span>(?:<\/td>\s*<td[^>]*>|<br>)<span[^>]*><span>([^<]+)/
     );
     if (orderMatch) result.orderNumber = orderMatch[1].trim();
 

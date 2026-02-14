@@ -45,16 +45,18 @@ export class TelegramService {
   }
 
   async sendSubscriptionPaymentNotification(paymentInfo) {
-    const message = `
+    let message = `
 🔔 Paiement d'abonnement PayPal !
 
 🏪 Marchand : ${paymentInfo.merchant}
 💵 Montant : *${paymentInfo.amount}*
 📅 Date : ${paymentInfo.date}
-🕒 Heure : ${paymentInfo.time}
-🔢 N° de commande : ${paymentInfo.orderNumber}
-🔢 Référence : ${paymentInfo.reference}
-`;
+🕒 Heure : ${paymentInfo.time}`;
+
+    if (paymentInfo.orderNumber) {
+      message += `\n🔢 N° de commande : ${paymentInfo.orderNumber}`;
+    }
+    message += `\n🔢 Référence : ${paymentInfo.reference}\n`;
 
     try {
       await this.bot.sendMessage(telegramConfig.chatId, message, {

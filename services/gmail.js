@@ -79,6 +79,8 @@ export class GmailService {
       return "received";
     } else if (subject.includes("Vous avez envoyé un paiement")) {
       return "sent";
+    } else if (subject.includes("Reçu pour votre paiement")) {
+      return "subscription";
     }
     return null;
   }
@@ -141,6 +143,8 @@ export class GmailService {
       return this.parseReceivedPaymentEmail(emailDate, emailContent);
     } else if (type === "sent") {
       return this.parseSentPaymentEmail(emailDate, emailContent);
+    } else if (type === "subscription") {
+      return this.parseSubscriptionPaymentEmail(emailDate, emailContent);
     }
     return null;
   }
@@ -245,6 +249,54 @@ export class GmailService {
 
     const internalReferenceMatch = emailContent.match(/>(GF\d{4}[A-Z]\d{4})</);
     if (internalReferenceMatch) result.internalReference = internalReferenceMatch[1];
+
+    return result;
+  }
+
+  parseSubscriptionPaymentEmail(emailDate, emailContent) {
+    const result = {
+      type: "subscription",
+    };
+
+    // Extraction du marchand et du montant depuis "Vous avez payé XX,XX € EUR à Marchand."
+    const mainMatch = emailContent.match(
+      /Vous avez payé ([\d\s\u00a0,]+\s*€\s*EUR) à ([^.<]+)/
+    );
+    if (mainMatch) {
+      result.amount = mainMatch[1].trim();
+      result.merchant = mainMatch[2].trim();
+    }
+
+    // Extraction de la date depuis le tableau HTML
+    const dateMatch = emailContent.match(
+      /Date de la transaction<\/span><\/span><\/td>\s*<td[^>]*><span[^>]*><span>([^<]+)/
+    );
+    if (dateMatch) result.date = dateMatch[1].trim();
+
+    // Extraction du n° de commande
+    const orderMatch = emailContent.match(
+      /N° de commande<\/span><\/span><\/td>\s*<td[^>]*><span[^>]*><span>([^<]+)/
+    );
+    if (orderMatch) result.orderNumber = orderMatch[1].trim();
+
+    // Extraction de la référence de transaction depuis l'URL
+    const referenceMatch = emailContent.match(
+      /details\/([A-Z0-9]+)\?/
+    );
+    if (referenceMatch) result.reference = referenceMatch[1];
+
+    // Extraction de l'heure avec formatage
+    const emailDateMatch = emailDate.match(
+      /\w+, \d+ \w+ \d+ (\d{2}):(\d{2}):\d{2} ([-+]\d{4})/
+    );
+    if (emailDateMatch) {
+      const [hours, minutes] = emailDateMatch.slice(1, 3).map(Number);
+      const timezoneOffset = parseInt(emailDateMatch[3], 10) / 100;
+      const adjustedHours = (hours + 1 - timezoneOffset + 24) % 24;
+      result.time = `${String(adjustedHours).padStart(2, "0")}:${String(
+        minutes
+      ).padStart(2, "0")}`;
+    }
 
     return result;
   }

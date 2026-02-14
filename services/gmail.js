@@ -151,7 +151,7 @@ export class GmailService {
     };
 
     // Extraction du nom de l'expéditeur
-    const senderMatch = emailContent.match(/(\w+\s+\w+)\s+vous a envoyé/);
+    const senderMatch = emailContent.match(/([\p{L}\p{M}]+\s+[\p{L}\p{M}]+(?:\s+[\p{L}\p{M}]+)*)\s+vous a envoyé/u);
     if (senderMatch) result.sender = senderMatch[1];
 
     // Extraction des frais

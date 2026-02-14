@@ -41,7 +41,7 @@ export class GmailService {
             const parsedEmail = this.parsePayPalEmail(emailType, date, content);
             if (parsedEmail) {
               const currentAmount = parseFloat(
-                parsedEmail.amount?.split(" ")[0].trim().replace(",", ".")
+                parsedEmail.amount?.replace(/[^\d,]/g, "").replace(",", ".")
               );
               amountSum += currentAmount * (emailType === "received" ? 1 : -1);
               console.log(
@@ -170,7 +170,7 @@ export class GmailService {
     } else {
       // Pas de frais, on extrait le montant directement
       const amountMatch = emailContent.match(
-        /vous a envoyé\s([\d,]+\s*€\s*EUR)/
+        /vous a envoyé\s([\d\s\u00a0,]+\s*€\s*EUR)/
       );
       if (amountMatch) result.amount = amountMatch[1];
     }
@@ -214,7 +214,7 @@ export class GmailService {
 
     // Extraction du montant
     const amountMatch = emailContent.match(
-      /envoyé ([0-9]+,[0-9]{2}\s*€?\s*EUR)/
+      /envoyé ([0-9\s\u00a0]+,[0-9]{2}\s*€?\s*EUR)/
     );
     if (amountMatch) result.amount = amountMatch[1];
 

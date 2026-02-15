@@ -307,7 +307,7 @@ export class GmailService {
 
     // Extraction du montant et de l'expéditeur depuis "Votre remboursement de XX,XX € EUR de la part de NomComplet"
     const mainMatch = emailContent.match(
-      /remboursement de ([\d\s\u00a0,]+\s*€\s*EUR) de la part de ([^<]+)/
+      /remboursement de ([\d\s\u00a0,]+\s*€\s*EUR) de la part de (.+?) a \xe9t\xe9 initi\xe9/
     );
     if (mainMatch) {
       result.amount = mainMatch[1].trim();

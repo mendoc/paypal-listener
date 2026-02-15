@@ -81,6 +81,8 @@ export class GmailService {
       return "sent";
     } else if (subject.includes("Reçu pour votre paiement")) {
       return "subscription";
+    } else if (subject.includes("Vous avez un remboursement")) {
+      return "refund";
     }
     return null;
   }
@@ -145,6 +147,8 @@ export class GmailService {
       return this.parseSentPaymentEmail(emailDate, emailContent);
     } else if (type === "subscription") {
       return this.parseSubscriptionPaymentEmail(emailDate, emailContent);
+    } else if (type === "refund") {
+      return this.parseRefundEmail(emailDate, emailContent);
     }
     return null;
   }
@@ -272,6 +276,43 @@ export class GmailService {
       /(?:N° de commande|Numéro de facture)<\/(?:span|strong)><\/span>(?:<\/td>\s*<td[^>]*>|<br>)<span[^>]*><span>([^<]+)/
     );
     if (orderMatch) result.orderNumber = orderMatch[1].trim();
+
+    // Extraction de la référence de transaction depuis l'URL
+    const referenceMatch = emailContent.match(
+      /details\/([A-Z0-9]+)\?/
+    );
+    if (referenceMatch) result.reference = referenceMatch[1];
+
+    // Extraction de la date et de l'heure depuis le header de l'email
+    const emailDateMatch = emailDate.match(
+      /\w+, (\d+) (\w+) (\d+) (\d{2}):(\d{2}):\d{2} ([-+]\d{4})/
+    );
+    if (emailDateMatch) {
+      const [, day, monthStr, year, hours, minutes] = emailDateMatch;
+      const timezoneOffset = parseInt(emailDateMatch[6], 10) / 100;
+      const adjustedHours = (Number(hours) + 1 - timezoneOffset + 24) % 24;
+      const months = { Jan: "janvier", Feb: "février", Mar: "mars", Apr: "avril", May: "mai", Jun: "juin", Jul: "juillet", Aug: "août", Sep: "septembre", Oct: "octobre", Nov: "novembre", Dec: "décembre" };
+      const month = months[monthStr] || monthStr;
+      result.date = `${Number(day)} ${month} ${year}`;
+      result.time = `${String(adjustedHours).padStart(2, "0")}:${minutes}`;
+    }
+
+    return result;
+  }
+
+  parseRefundEmail(emailDate, emailContent) {
+    const result = {
+      type: "refund",
+    };
+
+    // Extraction du montant et de l'expéditeur depuis "Votre remboursement de XX,XX € EUR de la part de NomComplet"
+    const mainMatch = emailContent.match(
+      /remboursement de ([\d\s\u00a0,]+\s*€\s*EUR) de la part de ([^<]+)/
+    );
+    if (mainMatch) {
+      result.amount = mainMatch[1].trim();
+      result.sender = mainMatch[2].trim();
+    }
 
     // Extraction de la référence de transaction depuis l'URL
     const referenceMatch = emailContent.match(

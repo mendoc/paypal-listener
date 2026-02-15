@@ -305,9 +305,11 @@ export class GmailService {
       type: "refund",
     };
 
-    // Extraction du montant et de l'expéditeur depuis "Votre remboursement de XX,XX € EUR de la part de NomComplet"
+    // Extraction du montant et de l'expéditeur depuis le titre principal
+    // Format 1: "remboursement de XX € EUR de la part de Nom a été initié"
+    // Format 2: "remboursement de XX € EUR de Nom</span>"
     const mainMatch = emailContent.match(
-      /remboursement de ([\d\s\u00a0,]+\s*€\s*EUR) de la part de (.+?) a \xe9t\xe9 initi\xe9/
+      /remboursement de ([\d\s\u00a0,]+\s*€\s*EUR) (?:de la part de |de )(.+?)(?:\s*a \xe9t\xe9 initi\xe9|<\/span>)/
     );
     if (mainMatch) {
       result.amount = mainMatch[1].trim();

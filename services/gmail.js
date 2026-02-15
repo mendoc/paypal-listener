@@ -42,7 +42,7 @@ export class GmailService {
             if (parsedEmail) {
               const currentAmount = parseFloat(
                 parsedEmail.amount?.replace(/[^\d,]/g, "").replace(",", ".")
-              );
+              ) || 0;
               amountSum += currentAmount * (emailType === "received" ? 1 : -1);
               console.log(
                 "[checkNewPayPalEmails@GmailService]",
@@ -220,11 +220,18 @@ export class GmailService {
     const recipientMatch = emailContent.match(/envoyé .* à ([^.]+)\./);
     if (recipientMatch) result.recipient = recipientMatch[1].trim();
 
-    // Extraction du montant
+    // Extraction du montant (EUR direct ou équivalent EUR pour devises étrangères)
     const amountMatch = emailContent.match(
       /envoyé ([0-9\s\u00a0]+,[0-9]{2}\s*€?\s*EUR)/
     );
-    if (amountMatch) result.amount = amountMatch[1];
+    if (amountMatch) {
+      result.amount = amountMatch[1];
+    } else {
+      const eurEquivalentMatch = emailContent.match(
+        /=\s*([\d\s\u00a0]+,\d{2}\s*€\s*EUR)/
+      );
+      if (eurEquivalentMatch) result.amount = eurEquivalentMatch[1];
+    }
 
     // Extraction de la date
     const dateMatch = emailContent.match(

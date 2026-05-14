@@ -53,7 +53,11 @@ export default async (request, context) => {
       return Response.json({ error: "Invalid signature" }, { status: 401 });
     }
 
-    if (sender !== "service@paypal.fr") {
+    const allowedSenders = [
+      "service@paypal.fr",
+      "ongouadimitri5+caf_=notify=mail.ongoua.pro@gmail.com",
+    ];
+    if (!allowedSenders.includes(sender)) {
       console.log("[handlepaypalpayments]", "Sender ignoré:", sender);
       return Response.json({ ignored: true });
     }

@@ -120,6 +120,27 @@ export class DatabaseService {
     }
   }
 
+  async hasProcessedEmail(messageId) {
+    try {
+      const query = "SELECT EXISTS(SELECT 1 FROM processed_emails WHERE message_id = $1)";
+      const result = await this.pool.query(query, [messageId]);
+      return result.rows[0].exists;
+    } catch (error) {
+      console.error(`[hasProcessedEmail@DatabaseService] Erreur.`, error);
+      throw error;
+    }
+  }
+
+  async markEmailAsProcessed(messageId) {
+    try {
+      const query = "INSERT INTO processed_emails (message_id) VALUES ($1) ON CONFLICT DO NOTHING";
+      await this.pool.query(query, [messageId]);
+    } catch (error) {
+      console.error(`[markEmailAsProcessed@DatabaseService] Erreur.`, error);
+      throw error;
+    }
+  }
+
   async closeConnection() {
     try {
       await this.pool.end();

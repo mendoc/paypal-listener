@@ -114,6 +114,8 @@ export default async (request, context) => {
           }
         }
       }
+
+      await telegramService.sendBalanceUpdateNotification(payPalBalance, newPayPalBalance);
     }
 
     return Response.json(

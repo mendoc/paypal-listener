@@ -167,6 +167,39 @@ export class TelegramService {
     }
   }
 
+  async sendBalanceUpdateNotification(previousBalance, newBalance) {
+    const previous = parseFloat(previousBalance) || 0;
+    const current = parseFloat(newBalance) || 0;
+    const difference = current - previous;
+    const formatAmount = (value) =>
+      value.toLocaleString("fr-FR", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      });
+    const arrow = difference >= 0 ? "📈" : "📉";
+    const sign = difference >= 0 ? "+" : "";
+
+    const message = `
+🏦 Solde PayPal mis à jour !
+
+💰 Nouveau solde : <b>${formatAmount(current)} €</b>
+${arrow} Variation : ${sign}${formatAmount(difference)} €
+🔙 Ancien solde : ${formatAmount(previous)} €
+`;
+
+    try {
+      await this.bot.sendMessage(telegramConfig.chatId, message, {
+        parse_mode: "HTML",
+      });
+    } catch (error) {
+      console.error(
+        "[sendBalanceUpdateNotification@TelegramService]",
+        "Erreur lors de l'envoi du message Telegram:",
+        error
+      );
+    }
+  }
+
   async sendMessage(message) {
     try {
       await this.bot.sendMessage(telegramConfig.chatId, message, {

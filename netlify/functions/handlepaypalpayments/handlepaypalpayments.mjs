@@ -165,6 +165,8 @@ export default async (request, context) => {
       }
     }
 
+    await telegramService.sendBalanceUpdateNotification(payPalBalance, newPayPalBalance);
+
     if (messageId) {
       await databaseService.markEmailAsProcessed(messageId);
     }

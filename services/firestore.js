@@ -31,15 +31,23 @@ export class FirestoreService {
 
   /**
    * Écrit un événement dans un document de la collection 'events'.
-   * Tente une mise à jour, puis crée le document s'il n'existe pas encore.
+   * Ajoute systématiquement le timestamp serveur et l'initiateur,
+   * puis tente une mise à jour et crée le document s'il n'existe pas encore.
    * @param {string} eventName Le nom de la méthode émettrice (pour les logs).
    * @param {string} docId L'identifiant du document dans la collection 'events'.
-   * @param {object} eventData Les données de l'événement à écrire.
+   * @param {string} initiator La fonction ou le processus qui a déclenché l'événement.
+   * @param {object} [extraData] Les champs supplémentaires propres à l'événement.
    */
-  async _emitEvent(eventName, docId, eventData) {
+  async _emitEvent(eventName, docId, initiator, extraData = {}) {
     const tag = `[${eventName}@FirestoreService]`;
     const docPath = `events/${docId}`;
     const eventDocRef = this.db.collection("events").doc(docId);
+
+    const eventData = {
+      time: FieldValue.serverTimestamp(),
+      initiator: initiator || "unknown",
+      ...extraData,
+    };
 
     try {
       // Tente de mettre à jour le document. `update` échoue si le document n'existe pas.
@@ -76,12 +84,7 @@ export class FirestoreService {
       return;
     }
 
-    await this._emitEvent("emitCaptureSaved", "screenshot", {
-      time: FieldValue.serverTimestamp(), // Utilise le timestamp du serveur Firebase
-      initiator: initiator || "unknown",
-      reference: reference,
-      to: to,
-    });
+    await this._emitEvent("emitCaptureSaved", "screenshot", initiator, { reference, to });
   }
 
   /**
@@ -89,9 +92,6 @@ export class FirestoreService {
    * @param {string} initiator La fonction ou le processus qui a déclenché l'événement.
    */
   async emitRefreshList(initiator) {
-    await this._emitEvent("emitRefreshList", "refreshList", {
-      time: FieldValue.serverTimestamp(),
-      initiator: initiator || "unknown",
-    });
+    await this._emitEvent("emitRefreshList", "refreshList", initiator);
   }
 }

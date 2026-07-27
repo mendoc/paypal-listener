@@ -30,6 +30,41 @@ export class FirestoreService {
   }
 
   /**
+   * Écrit un événement dans un document de la collection 'events'.
+   * Tente une mise à jour, puis crée le document s'il n'existe pas encore.
+   * @param {string} eventName Le nom de la méthode émettrice (pour les logs).
+   * @param {string} docId L'identifiant du document dans la collection 'events'.
+   * @param {object} eventData Les données de l'événement à écrire.
+   */
+  async _emitEvent(eventName, docId, eventData) {
+    const tag = `[${eventName}@FirestoreService]`;
+    const docPath = `events/${docId}`;
+    const eventDocRef = this.db.collection("events").doc(docId);
+
+    try {
+      // Tente de mettre à jour le document. `update` échoue si le document n'existe pas.
+      await eventDocRef.update(eventData);
+      console.log(`${tag} L'événement a été mis à jour dans '${docPath}'.`);
+    } catch (error) {
+      // Si le document n'existe pas (code d'erreur 'NOT_FOUND'), on le crée.
+      if (error.code === 5) {
+        console.log(`${tag} Le document '${docPath}' n'existe pas. Création du document.`);
+        try {
+          await eventDocRef.set(eventData);
+          console.log(`${tag} Le document '${docPath}' a été créé.`);
+        } catch (setError) {
+          console.error(`${tag} Erreur lors de la création du document '${docPath}'.`, setError);
+          throw setError;
+        }
+      } else {
+        // Pour toute autre erreur, on la propage.
+        console.error(`${tag} Erreur lors de la mise à jour du document '${docPath}'.`, error);
+        throw error;
+      }
+    }
+  }
+
+  /**
    * Met à jour le document 'events/screenshot' pour notifier qu'une capture a été enregistrée.
    * @param {string} initiator La fonction ou le processus qui a déclenché l'événement.
    * @param {string} reference La référence de la transaction.
@@ -41,36 +76,12 @@ export class FirestoreService {
       return;
     }
 
-    const eventDocRef = this.db.collection("events").doc("screenshot");
-
-    const eventData = {
+    await this._emitEvent("emitCaptureSaved", "screenshot", {
       time: FieldValue.serverTimestamp(), // Utilise le timestamp du serveur Firebase
       initiator: initiator || "unknown",
       reference: reference,
       to: to,
-    };
-
-    try {
-      // Tente de mettre à jour le document. `update` échoue si le document n'existe pas.
-      await eventDocRef.update(eventData);
-      console.log(`[emitCaptureSaved@FirestoreService] L'événement pour la référence ${reference} a été mis à jour dans 'events/screenshot'.`);
-    } catch (error) {
-      // Si le document n'existe pas (code d'erreur 'NOT_FOUND'), on le crée.
-      if (error.code === 5) { 
-        console.log("[emitCaptureSaved@FirestoreService] Le document 'events/screenshot' n'existe pas. Création du document.");
-        try {
-          await eventDocRef.set(eventData);
-          console.log(`[emitCaptureSaved@FirestoreService] Le document 'events/screenshot' a été créé pour la référence ${reference}.`);
-        } catch (setError) {
-          console.error("[emitCaptureSaved@FirestoreService] Erreur lors de la création du document 'events/screenshot'.", setError);
-          throw setError;
-        }
-      } else {
-        // Pour toute autre erreur, on la propage.
-        console.error("[emitCaptureSaved@FirestoreService] Erreur lors de la mise à jour du document 'events/screenshot'.", error);
-        throw error;
-      }
-    }
+    });
   }
 
   /**
@@ -78,33 +89,9 @@ export class FirestoreService {
    * @param {string} initiator La fonction ou le processus qui a déclenché l'événement.
    */
   async emitRefreshList(initiator) {
-    const refreshDocRef = this.db.collection("events").doc("refreshList");
-
-    const eventData = {
+    await this._emitEvent("emitRefreshList", "refreshList", {
       time: FieldValue.serverTimestamp(),
-      initiator: initiator ? initiator : "unknown",
-    };
-
-    try {
-      // Tente de mettre à jour le document. `update` échoue si le document n'existe pas.
-      await refreshDocRef.update(eventData);
-      console.log("[emitRefreshList@FirestoreService] L'événement a été mis à jour dans 'events/refreshList'.");
-    } catch (error) {
-      // Si le document n'existe pas (code d'erreur 'NOT_FOUND'), on le crée.
-      if (error.code === 5) {
-        console.log("[emitRefreshList@FirestoreService] Le document 'events/refreshList' n'existe pas. Création du document.");
-        try {
-          await refreshDocRef.set(eventData);
-          console.log("[emitRefreshList@FirestoreService] Le document 'events/refreshList' a été créé.");
-        } catch (setError) {
-          console.error("[emitRefreshList@FirestoreService] Erreur lors de la création du document 'events/refreshList'.", setError);
-          throw setError;
-        }
-      } else {
-        // Pour toute autre erreur, on la propage.
-        console.error("[emitRefreshList@FirestoreService] Erreur lors de la mise à jour du document 'events/refreshList'.", error);
-        throw error;
-      }
-    }
+      initiator: initiator || "unknown",
+    });
   }
 }

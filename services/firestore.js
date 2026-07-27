@@ -72,4 +72,39 @@ export class FirestoreService {
       }
     }
   }
+
+  /**
+   * Met à jour le document 'events/refreshList' pour notifier qu'un rafraîchissement de la liste est demandé.
+   * @param {string} initiator La fonction ou le processus qui a déclenché l'événement.
+   */
+  async emitRefreshList(initiator) {
+    const refreshDocRef = this.db.collection("events").doc("refreshList");
+
+    const eventData = {
+      time: FieldValue.serverTimestamp(),
+      initiator: initiator ? initiator : "unknown",
+    };
+
+    try {
+      // Tente de mettre à jour le document. `update` échoue si le document n'existe pas.
+      await refreshDocRef.update(eventData);
+      console.log("[emitRefreshList@FirestoreService] L'événement a été mis à jour dans 'events/refreshList'.");
+    } catch (error) {
+      // Si le document n'existe pas (code d'erreur 'NOT_FOUND'), on le crée.
+      if (error.code === 5) {
+        console.log("[emitRefreshList@FirestoreService] Le document 'events/refreshList' n'existe pas. Création du document.");
+        try {
+          await refreshDocRef.set(eventData);
+          console.log("[emitRefreshList@FirestoreService] Le document 'events/refreshList' a été créé.");
+        } catch (setError) {
+          console.error("[emitRefreshList@FirestoreService] Erreur lors de la création du document 'events/refreshList'.", setError);
+          throw setError;
+        }
+      } else {
+        // Pour toute autre erreur, on la propage.
+        console.error("[emitRefreshList@FirestoreService] Erreur lors de la mise à jour du document 'events/refreshList'.", error);
+        throw error;
+      }
+    }
+  }
 }

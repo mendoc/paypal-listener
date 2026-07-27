@@ -104,6 +104,7 @@ export default async (request, context) => {
               // Émettre l'événement Firestore si nécessaire
               if (shouldEmitEvent && firestoreService) {
                 await firestoreService.emitCaptureSaved("function-checkpaypalpayments", email.internalReference, simulation.whatsapp);
+                await firestoreService.emitRefreshList("function-checkpaypalpayments");
               }
             } else {
               await telegramService.sendMessage(`❌ Impossible de marquer la transaction ${email.internalReference} comme traitée : ${result.message}`);

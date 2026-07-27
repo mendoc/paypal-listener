@@ -156,6 +156,7 @@ export default async (request, context) => {
             await telegramService.sendMessage(`✅ Transaction ${parsedEmail.internalReference} marquée comme traitée.`);
             if (shouldEmitEvent && firestoreService) {
               await firestoreService.emitCaptureSaved("function-handlepaypalpayments", parsedEmail.internalReference, simulation.whatsapp);
+              await firestoreService.emitRefreshList("function-handlepaypalpayments");
             }
           } else {
             await telegramService.sendMessage(`❌ Impossible de marquer la transaction ${parsedEmail.internalReference} comme traitée : ${result.message}`);

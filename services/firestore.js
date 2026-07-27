@@ -30,6 +30,49 @@ export class FirestoreService {
   }
 
   /**
+   * Écrit un événement dans un document de la collection 'events'.
+   * Ajoute systématiquement le timestamp serveur et l'initiateur,
+   * puis tente une mise à jour et crée le document s'il n'existe pas encore.
+   * @param {string} eventName Le nom de la méthode émettrice (pour les logs).
+   * @param {string} docId L'identifiant du document dans la collection 'events'.
+   * @param {string} initiator La fonction ou le processus qui a déclenché l'événement.
+   * @param {object} [extraData] Les champs supplémentaires propres à l'événement.
+   */
+  async _emitEvent(eventName, docId, initiator, extraData = {}) {
+    const tag = `[${eventName}@FirestoreService]`;
+    const docPath = `events/${docId}`;
+    const eventDocRef = this.db.collection("events").doc(docId);
+
+    const eventData = {
+      time: FieldValue.serverTimestamp(),
+      initiator: initiator || "unknown",
+      ...extraData,
+    };
+
+    try {
+      // Tente de mettre à jour le document. `update` échoue si le document n'existe pas.
+      await eventDocRef.update(eventData);
+      console.log(`${tag} L'événement a été mis à jour dans '${docPath}'.`);
+    } catch (error) {
+      // Si le document n'existe pas (code d'erreur 'NOT_FOUND'), on le crée.
+      if (error.code === 5) {
+        console.log(`${tag} Le document '${docPath}' n'existe pas. Création du document.`);
+        try {
+          await eventDocRef.set(eventData);
+          console.log(`${tag} Le document '${docPath}' a été créé.`);
+        } catch (setError) {
+          console.error(`${tag} Erreur lors de la création du document '${docPath}'.`, setError);
+          throw setError;
+        }
+      } else {
+        // Pour toute autre erreur, on la propage.
+        console.error(`${tag} Erreur lors de la mise à jour du document '${docPath}'.`, error);
+        throw error;
+      }
+    }
+  }
+
+  /**
    * Met à jour le document 'events/screenshot' pour notifier qu'une capture a été enregistrée.
    * @param {string} initiator La fonction ou le processus qui a déclenché l'événement.
    * @param {string} reference La référence de la transaction.
@@ -41,35 +84,14 @@ export class FirestoreService {
       return;
     }
 
-    const eventDocRef = this.db.collection("events").doc("screenshot");
+    await this._emitEvent("emitCaptureSaved", "screenshot", initiator, { reference, to });
+  }
 
-    const eventData = {
-      time: FieldValue.serverTimestamp(), // Utilise le timestamp du serveur Firebase
-      initiator: initiator || "unknown",
-      reference: reference,
-      to: to,
-    };
-
-    try {
-      // Tente de mettre à jour le document. `update` échoue si le document n'existe pas.
-      await eventDocRef.update(eventData);
-      console.log(`[emitCaptureSaved@FirestoreService] L'événement pour la référence ${reference} a été mis à jour dans 'events/screenshot'.`);
-    } catch (error) {
-      // Si le document n'existe pas (code d'erreur 'NOT_FOUND'), on le crée.
-      if (error.code === 5) { 
-        console.log("[emitCaptureSaved@FirestoreService] Le document 'events/screenshot' n'existe pas. Création du document.");
-        try {
-          await eventDocRef.set(eventData);
-          console.log(`[emitCaptureSaved@FirestoreService] Le document 'events/screenshot' a été créé pour la référence ${reference}.`);
-        } catch (setError) {
-          console.error("[emitCaptureSaved@FirestoreService] Erreur lors de la création du document 'events/screenshot'.", setError);
-          throw setError;
-        }
-      } else {
-        // Pour toute autre erreur, on la propage.
-        console.error("[emitCaptureSaved@FirestoreService] Erreur lors de la mise à jour du document 'events/screenshot'.", error);
-        throw error;
-      }
-    }
+  /**
+   * Met à jour le document 'events/refreshList' pour notifier qu'un rafraîchissement de la liste est demandé.
+   * @param {string} initiator La fonction ou le processus qui a déclenché l'événement.
+   */
+  async emitRefreshList(initiator) {
+    await this._emitEvent("emitRefreshList", "refreshList", initiator);
   }
 }

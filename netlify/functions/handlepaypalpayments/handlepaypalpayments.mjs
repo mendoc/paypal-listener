@@ -13,6 +13,7 @@ import { DatabaseService } from "../../../services/database";
 import { ImageGenerator } from "../../../services/ImageGenerator";
 import { FirestoreService } from "../../../services/firestore";
 import { getEmailType, parsePayPalEmail } from "../../../services/emailParser";
+import { PaymentMatcher, parseAmountToNumber } from "../../../services/paymentMatcher";
 
 export default async (request, context) => {
   if (request.method !== "POST") {
@@ -109,6 +110,23 @@ export default async (request, context) => {
     const imageGenerator = new ImageGenerator();
 
     if (emailType === "received" || emailType === "subscription" || emailType === "refund") {
+      if (emailType === "received") {
+        try {
+          const matcher = new PaymentMatcher(databaseService);
+          const match = await matcher.matchReceivedPayment({
+            sender: parsedEmail.sender,
+            amount: parseAmountToNumber(parsedEmail.amount),
+            fees: parseAmountToNumber(parsedEmail.fees),
+          });
+          if (match.matched) {
+            parsedEmail.match = { reference: match.simulationReference, whatsapp: match.whatsapp };
+          }
+          console.log("[handlepaypalpayments]", "matching expéditeur:", match);
+        } catch (err) {
+          console.error("[handlepaypalpayments]", "erreur matching expéditeur (non bloquante):", err);
+        }
+      }
+
       await telegramService.sendPayPalNotification(parsedEmail);
 
       if (emailType === "subscription") {

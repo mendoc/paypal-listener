@@ -120,6 +120,80 @@ export class DatabaseService {
     }
   }
 
+  async findExpediteurByNom(nom) {
+    try {
+      const query =
+        "SELECT uuid, numero, nom FROM expediteurs WHERE LOWER(TRIM(nom)) = LOWER(TRIM($1)) LIMIT 1";
+      const result = await this.pool.query(query, [nom]);
+      if (result.rows.length > 0) {
+        return result.rows[0];
+      }
+      return null;
+    } catch (error) {
+      console.error(
+        `[findExpediteurByNom@DatabaseService] Erreur lors de la recherche de l'expéditeur [${nom}].`,
+        error
+      );
+      throw error;
+    }
+  }
+
+  async createExpediteur(numero, nom) {
+    try {
+      const query =
+        "INSERT INTO expediteurs (numero, nom) VALUES ($1, $2) RETURNING uuid, numero, nom";
+      const result = await this.pool.query(query, [numero, nom]);
+      console.log(
+        `[createExpediteur@DatabaseService] Expéditeur [${nom}] créé avec le numéro [${numero}].`
+      );
+      return result.rows[0];
+    } catch (error) {
+      console.error(
+        `[createExpediteur@DatabaseService] Erreur lors de la création de l'expéditeur [${nom}].`,
+        error
+      );
+      throw error;
+    }
+  }
+
+  async findEligibleSimulations(amount) {
+    try {
+      const query = `
+        SELECT reference, whatsapp, recu FROM simulations
+        WHERE trans_type = 'FRGA'
+          AND statut = 0
+          AND creele >= NOW() - INTERVAL '2 days'
+          AND recu ~ '^[0-9]+([,.][0-9]+)?$'
+          AND REPLACE(recu, ',', '.')::DECIMAL = $1::DECIMAL`;
+      const result = await this.pool.query(query, [amount]);
+      return result.rows;
+    } catch (error) {
+      console.error(
+        `[findEligibleSimulations@DatabaseService] Erreur lors de la recherche des simulations pour le montant [${amount}].`,
+        error
+      );
+      throw error;
+    }
+  }
+
+  async setSimulationExpediteurNom(reference, nom) {
+    try {
+      const query =
+        "UPDATE simulations SET expediteur_nom = $2, updated_at = NOW() WHERE reference = $1";
+      const result = await this.pool.query(query, [reference, nom]);
+      console.log(
+        `[setSimulationExpediteurNom@DatabaseService] Simulation ${reference} associée à l'expéditeur [${nom}].`
+      );
+      return result.rowCount;
+    } catch (error) {
+      console.error(
+        `[setSimulationExpediteurNom@DatabaseService] Erreur lors de la mise à jour de la simulation ${reference}.`,
+        error
+      );
+      throw error;
+    }
+  }
+
   async hasProcessedEmail(messageId) {
     try {
       const query = "SELECT EXISTS(SELECT 1 FROM processed_emails WHERE message_id = $1)";

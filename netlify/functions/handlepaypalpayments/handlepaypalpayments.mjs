@@ -116,6 +116,7 @@ export default async (request, context) => {
           const match = await matcher.matchReceivedPayment({
             sender: parsedEmail.sender,
             amount: parseAmountToNumber(parsedEmail.amount),
+            fees: parseAmountToNumber(parsedEmail.fees),
           });
           if (match.matched) {
             parsedEmail.match = { reference: match.simulationReference, whatsapp: match.whatsapp };

@@ -129,6 +129,35 @@ describe("PaymentMatcher.matchReceivedPayment", () => {
     assert.deepEqual(db.calls, [["findEligibleSimulations", 38.85]]);
   });
 
+  test("Frais présents → pas de rapprochement, aucun appel DB", async () => {
+    const db = createFakeDb({ simulations: [SIMULATION], expediteur: null });
+    const matcher = new PaymentMatcher(db);
+
+    const result = await matcher.matchReceivedPayment({
+      sender: "Jean Dupont",
+      amount: 38.85,
+      fees: 1.25,
+    });
+
+    assert.deepEqual(result, { matched: false, reason: "has-fees" });
+    assert.deepEqual(db.calls, []);
+  });
+
+  test("Frais nuls ou absents → le rapprochement a bien lieu", async () => {
+    for (const fees of [null, 0]) {
+      const db = createFakeDb({ simulations: [SIMULATION], expediteur: null });
+      const matcher = new PaymentMatcher(db);
+
+      const result = await matcher.matchReceivedPayment({
+        sender: "Jean Dupont",
+        amount: 38.85,
+        fees,
+      });
+
+      assert.equal(result.matched, true);
+    }
+  });
+
   test("Entrée invalide (sender vide ou montant null) → aucun appel DB", async () => {
     const db = createFakeDb();
     const matcher = new PaymentMatcher(db);

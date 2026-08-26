@@ -19,14 +19,20 @@ export class PaymentMatcher {
   }
 
   /**
-   * @param {{ sender: string|undefined, amount: number|null }} payment
+   * @param {{ sender: string|undefined, amount: number|null, fees?: number|null }} payment
    * @returns {Promise<
    *   | { matched: true, simulationReference: string, whatsapp: string, expediteurCreated: boolean }
-   *   | { matched: false, reason: "invalid-input" | "no-simulation" | "ambiguous" }>}
+   *   | { matched: false, reason: "invalid-input" | "has-fees" | "no-simulation" | "ambiguous" }>}
    */
-  async matchReceivedPayment({ sender, amount }) {
+  async matchReceivedPayment({ sender, amount, fees = null }) {
     if (!sender || !sender.trim() || amount == null) {
       return { matched: false, reason: "invalid-input" };
+    }
+
+    // Des frais prélevés faussent la correspondance avec le montant de la
+    // simulation : on ne tente aucun rapprochement.
+    if (fees != null && fees > 0) {
+      return { matched: false, reason: "has-fees" };
     }
 
     const simulations = await this.db.findEligibleSimulations(amount);

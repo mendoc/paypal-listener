@@ -8,7 +8,8 @@
     "start": "netlify functions:serve",
     "build": "netlify functions:build",
     "create": "netlify functions:create",
-    "token": "node getRefreshToken.js"
+    "token": "node getRefreshToken.js",
+    "test": "node --test \"test/**/*.test.mjs\""
   },
   "repository": {
     "type": "git",

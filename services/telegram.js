@@ -22,7 +22,7 @@ export class TelegramService {
 
   async sendReceivedPaymentNotification(paymentInfo) {
     const fees = paymentInfo.fees || "0,00 € EUR";
-    const message = `
+    let message = `
 💰 Nouveau paiement PayPal reçu !
 
 👤 De : ${paymentInfo.sender}
@@ -32,6 +32,10 @@ export class TelegramService {
 🕒 Heure : ${paymentInfo.time}
 🔢 Référence : ${paymentInfo.reference}
 `;
+
+    if (paymentInfo.match) {
+      message += `🔗 Simulation : ${paymentInfo.match.reference}\n📱 WhatsApp : ${paymentInfo.match.whatsapp}\n`;
+    }
 
     try {
       await this.bot.sendMessage(telegramConfig.chatId, message, {

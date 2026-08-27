@@ -129,6 +129,17 @@ export default async (request, context) => {
 
       await telegramService.sendPayPalNotification(parsedEmail);
 
+      if (parsedEmail.match) {
+        try {
+          const receivedImage = await imageGenerator.generateReceivedPaymentImage(parsedEmail);
+          if (receivedImage) {
+            await telegramService.sendReceivedPaymentImage(receivedImage, parsedEmail.reference);
+          }
+        } catch (err) {
+          console.error("[handlepaypalpayments]", "erreur génération image paiement reçu (non bloquante):", err);
+        }
+      }
+
       if (emailType === "subscription") {
         try {
           const montantEur = parseFloat(parsedEmail.amount?.replace(/[^\d,]/g, "").replace(",", "."));

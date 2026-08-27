@@ -107,8 +107,8 @@ export class ImageGenerator {
           <!-- Fond gris clair -->
           <rect width="${width}" height="${height}" fill="#dedee2"/>
 
-          <!-- Top line -->
-          <rect x="0" y="0" width="${width}" height="13" fill="#222d65"/>
+          <!-- Top line (couleurs inversées par rapport au transfert effectué) -->
+          <rect x="0" y="0" width="${width}" height="13" fill="#FFFFFF"/>
 
           <!-- Carte supérieure -->
           <defs>
@@ -124,27 +124,27 @@ export class ImageGenerator {
             </filter>
           </defs>
 
-          <rect x="30" y="32" width="${width - 60}" height="300" rx="10" fill="#FFFFFF" filter="url(#shadow)"/>
+          <rect x="30" y="32" width="${width - 60}" height="300" rx="10" fill="#222d65" filter="url(#shadow)"/>
 
           <!-- Textes supérieurs -->
           <text x="${width / 2}" y="190" font-family="Arial" font-size="30" font-weight="bold" fill="#24ae89" text-anchor="middle">Paiement reçu</text>
-          <text x="${width / 2}" y="240" font-family="Verdana" font-size="24" fill="#222d65" text-anchor="middle">Le montant de ${amount} a été reçu de</text>
-          <text x="${width / 2}" y="275" font-family="Verdana" font-size="24" fill="#222d65" text-anchor="middle">${sender}</text>
+          <text x="${width / 2}" y="240" font-family="Verdana" font-size="24" fill="#FFFFFF" text-anchor="middle">Le montant de ${amount} a été reçu de</text>
+          <text x="${width / 2}" y="275" font-family="Verdana" font-size="24" fill="#FFFFFF" text-anchor="middle">${sender}</text>
           <text x="${width / 2}" y="310" font-family="Verdana" font-size="24" fill="#cccccc" text-anchor="middle">${reference}</text>
 
           <!-- Carte inférieure -->
-          <rect x="30" y="350" width="${width - 60}" height="${height - 365}" rx="10" fill="#222d65"/>
+          <rect x="30" y="350" width="${width - 60}" height="${height - 365}" rx="10" fill="#FFFFFF"/>
 
           <!-- Informations -->
-          ${this.generateInfoLine("Référence", simulationReference, 400)}
-          ${this.generateInfoLine("Montant", amount, 470)}
-          ${this.generateInfoLine("Frais", fees, 540)}
-          ${this.generateInfoLine("Date et Heure", `${paymentInfo.date} à ${paymentInfo.time.substring(0, 5)}`, 610)}
-          ${this.generateInfoLine("Expéditeur", this.splitName(sender), 680)}
+          ${this.generateInfoLine("Référence", simulationReference, 400, "#222d65")}
+          ${this.generateInfoLine("Montant", amount, 470, "#222d65")}
+          ${this.generateInfoLine("Frais", fees, 540, "#222d65")}
+          ${this.generateInfoLine("Date et Heure", `${paymentInfo.date} à ${paymentInfo.time.substring(0, 5)}`, 610, "#222d65")}
+          ${this.generateInfoLine("Expéditeur", this.splitName(sender), 680, "#222d65")}
 
           <!-- Footer -->
-          <text x="${width / 2}" y="780" font-family="Verdana" font-size="19" fill="#FFFFFF" text-anchor="middle">Pour faire une transaction, rendez-vous sur :</text>
-          <text x="${width / 2}" y="810" font-family="Courier New" font-size="20" font-weight="bold" fill="#FFFFFF" text-anchor="middle">bit.ly/miango</text>
+          <text x="${width / 2}" y="780" font-family="Verdana" font-size="19" fill="#222d65" text-anchor="middle">Pour faire une transaction, rendez-vous sur :</text>
+          <text x="${width / 2}" y="810" font-family="Courier New" font-size="20" font-weight="bold" fill="#222d65" text-anchor="middle">bit.ly/miango</text>
         </svg>
       `);
 
@@ -189,14 +189,14 @@ export class ImageGenerator {
       .replace(/'/g, '&apos;');
   }
 
-  generateInfoLine(label, value, y) {
+  generateInfoLine(label, value, y, textColor = "#FFFFFF") {
     if (value.includes("\n")) {
       const [part1, part2] = value.split("\n");
       return `
         <g>
-          <text x="70" y="${y + 15}" font-family="Verdana" font-size="24" fill="#FFFFFF">${label}</text>
-          <text x="${720 - 70}" y="${y}" font-family="Verdana" font-size="24" font-weight="bold" fill="#FFFFFF" text-anchor="end">${part1}</text>
-          <text x="${720 - 70}" y="${y + 30}" font-family="Verdana" font-size="24" font-weight="bold" fill="#FFFFFF" text-anchor="end">${part2}</text>
+          <text x="70" y="${y + 15}" font-family="Verdana" font-size="24" fill="${textColor}">${label}</text>
+          <text x="${720 - 70}" y="${y}" font-family="Verdana" font-size="24" font-weight="bold" fill="${textColor}" text-anchor="end">${part1}</text>
+          <text x="${720 - 70}" y="${y + 30}" font-family="Verdana" font-size="24" font-weight="bold" fill="${textColor}" text-anchor="end">${part2}</text>
           <line x1="70" y1="${y + 53}" x2="${650}" y2="${y + 53}" stroke="#dddddd" stroke-width="1"/>
         </g>
       `;
@@ -204,8 +204,8 @@ export class ImageGenerator {
 
     return `
       <g>
-        <text x="70" y="${y}" font-family="Verdana" font-size="24" fill="#FFFFFF">${label}</text>
-        <text x="${650}" y="${y}" font-family="Verdana" font-size="24" font-weight="bold" fill="#FFFFFF" text-anchor="end">${value}</text>
+        <text x="70" y="${y}" font-family="Verdana" font-size="24" fill="${textColor}">${label}</text>
+        <text x="${650}" y="${y}" font-family="Verdana" font-size="24" font-weight="bold" fill="${textColor}" text-anchor="end">${value}</text>
         <line x1="70" y1="${y + 28}" x2="${650}" y2="${y + 28}" stroke="#dddddd" stroke-width="1"/>
       </g>
     `;

@@ -89,14 +89,114 @@ export class ImageGenerator {
     }
   }
 
-  generateInfoLine(label, value, y) {
+  async generateReceivedPaymentImage(paymentInfo) {
+    if (paymentInfo && !paymentInfo.sender) return null;
+
+    try {
+      const width = 720;
+      const height = 850;
+      const sender = this.escapeXml((paymentInfo.sender || '').toUpperCase());
+      const amount = this.escapeXml(paymentInfo.amount || '');
+      const fees = this.escapeXml(paymentInfo.fees || '0,00 € EUR');
+      const reference = this.escapeXml(paymentInfo.reference || '');
+      const simulationReference = this.escapeXml(paymentInfo.match?.reference || '');
+
+      // Créer une image SVG avec le contenu
+      const svgBuffer = Buffer.from(`
+        <svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
+          <!-- Fond gris clair -->
+          <rect width="${width}" height="${height}" fill="#dedee2"/>
+
+          <!-- Top line (couleurs inversées par rapport au transfert effectué) -->
+          <rect x="0" y="0" width="${width}" height="13" fill="#FFFFFF"/>
+
+          <!-- Carte supérieure -->
+          <defs>
+            <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+              <feGaussianBlur stdDeviation="5" result="shadow"/>
+              <feOffset dx="0" dy="5" result="offsetblur"/>
+              <feFlood flood-color="rgba(0,0,0,0.1)"/>
+              <feComposite in2="offsetblur" operator="in"/>
+              <feMerge>
+                <feMergeNode/>
+                <feMergeNode in="SourceGraphic"/>
+              </feMerge>
+            </filter>
+          </defs>
+
+          <rect x="30" y="32" width="${width - 60}" height="300" rx="10" fill="#222d65" filter="url(#shadow)"/>
+
+          <!-- Textes supérieurs -->
+          <text x="${width / 2}" y="190" font-family="Arial" font-size="30" font-weight="bold" fill="#24ae89" text-anchor="middle">Paiement reçu</text>
+          <text x="${width / 2}" y="240" font-family="Verdana" font-size="24" fill="#FFFFFF" text-anchor="middle">Le montant de ${amount} a été reçu de</text>
+          <text x="${width / 2}" y="275" font-family="Verdana" font-size="24" fill="#FFFFFF" text-anchor="middle">${sender}</text>
+          <text x="${width / 2}" y="310" font-family="Verdana" font-size="24" fill="#cccccc" text-anchor="middle">${reference}</text>
+
+          <!-- Carte inférieure -->
+          <rect x="30" y="350" width="${width - 60}" height="${height - 365}" rx="10" fill="#FFFFFF"/>
+
+          <!-- Informations -->
+          ${this.generateInfoLine("Référence", simulationReference, 400, "#222d65")}
+          ${this.generateInfoLine("Montant", amount, 470, "#222d65")}
+          ${this.generateInfoLine("Frais", fees, 540, "#222d65")}
+          ${this.generateInfoLine("Date et Heure", `${paymentInfo.date} à ${paymentInfo.time.substring(0, 5)}`, 610, "#222d65")}
+          ${this.generateInfoLine("Expéditeur", this.splitName(sender), 680, "#222d65")}
+
+          <!-- Footer -->
+          <text x="${width / 2}" y="780" font-family="Verdana" font-size="19" fill="#222d65" text-anchor="middle">Pour faire une transaction, rendez-vous sur :</text>
+          <text x="${width / 2}" y="810" font-family="Courier New" font-size="20" font-weight="bold" fill="#222d65" text-anchor="middle">bit.ly/miango</text>
+        </svg>
+      `);
+
+      try {
+        // Lire le logo
+        const logoPath = join(process.cwd(), './services/logo-round.png');
+        const logo = readFileSync(logoPath);
+
+        // Redimensionner le logo avant de le composer
+        const resizedLogo = await sharp(logo)
+          .resize(90, 90)
+          .toBuffer();
+
+        // Créer l'image finale avec le logo redimensionné
+        const image = await sharp(svgBuffer)
+          .composite([{
+            input: resizedLogo,
+            top: 55,
+            left: 305,
+          }])
+          .png()
+          .toBuffer();
+
+        return image;
+      } catch (error) {
+        console.error('Erreur lors du chargement du logo:', error);
+        // Retourner l'image sans logo en cas d'erreur
+        return await sharp(svgBuffer).png().toBuffer();
+      }
+    } catch (error) {
+      console.error('Erreur lors de la génération de l\'image de paiement reçu:', error);
+      throw error;
+    }
+  }
+
+  escapeXml(str) {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&apos;');
+  }
+
+  generateInfoLine(label, value, y, textColor = "#FFFFFF") {
     if (value.includes("\n")) {
       const [part1, part2] = value.split("\n");
       return `
         <g>
-          <text x="70" y="${y + 15}" font-family="Verdana" font-size="24" fill="#FFFFFF">${label}</text>
-          <text x="${720 - 70}" y="${y}" font-family="Verdana" font-size="24" font-weight="bold" fill="#FFFFFF" text-anchor="end">${part1}</text>
-          <text x="${720 - 70}" y="${y + 30}" font-family="Verdana" font-size="24" font-weight="bold" fill="#FFFFFF" text-anchor="end">${part2}</text>
+          <text x="70" y="${y + 15}" font-family="Verdana" font-size="24" fill="${textColor}">${label}</text>
+          <text x="${720 - 70}" y="${y}" font-family="Verdana" font-size="24" font-weight="bold" fill="${textColor}" text-anchor="end">${part1}</text>
+          <text x="${720 - 70}" y="${y + 30}" font-family="Verdana" font-size="24" font-weight="bold" fill="${textColor}" text-anchor="end">${part2}</text>
           <line x1="70" y1="${y + 53}" x2="${650}" y2="${y + 53}" stroke="#dddddd" stroke-width="1"/>
         </g>
       `;
@@ -104,8 +204,8 @@ export class ImageGenerator {
 
     return `
       <g>
-        <text x="70" y="${y}" font-family="Verdana" font-size="24" fill="#FFFFFF">${label}</text>
-        <text x="${650}" y="${y}" font-family="Verdana" font-size="24" font-weight="bold" fill="#FFFFFF" text-anchor="end">${value}</text>
+        <text x="70" y="${y}" font-family="Verdana" font-size="24" fill="${textColor}">${label}</text>
+        <text x="${650}" y="${y}" font-family="Verdana" font-size="24" font-weight="bold" fill="${textColor}" text-anchor="end">${value}</text>
         <line x1="70" y1="${y + 28}" x2="${650}" y2="${y + 28}" stroke="#dddddd" stroke-width="1"/>
       </g>
     `;

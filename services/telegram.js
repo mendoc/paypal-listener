@@ -50,6 +50,26 @@ export class TelegramService {
     }
   }
 
+  async sendReceivedPaymentImage(imageBuffer, reference) {
+    try {
+      await this.bot.sendPhoto(
+        telegramConfig.chatId,
+        imageBuffer,
+        {},
+        {
+          filename: `paypal_received_${reference}.png`,
+          contentType: "image/png",
+        }
+      );
+    } catch (error) {
+      console.error(
+        "[sendReceivedPaymentImage@TelegramService]",
+        "Erreur lors de l'envoi de l'image Telegram:",
+        error
+      );
+    }
+  }
+
   async sendSubscriptionPaymentNotification(paymentInfo) {
     let message = `
 🔔 Paiement d'abonnement PayPal !

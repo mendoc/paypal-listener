@@ -107,8 +107,8 @@ export class ImageGenerator {
           <!-- Fond gris clair -->
           <rect width="${width}" height="${height}" fill="#dedee2"/>
 
-          <!-- Top line (couleurs inversées par rapport au transfert effectué) -->
-          <rect x="0" y="0" width="${width}" height="13" fill="#FFFFFF"/>
+          <!-- Top line -->
+          <rect x="0" y="0" width="${width}" height="13" fill="#222d65"/>
 
           <!-- Carte supérieure -->
           <defs>

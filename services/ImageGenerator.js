@@ -107,8 +107,8 @@ export class ImageGenerator {
           <!-- Fond gris clair -->
           <rect width="${width}" height="${height}" fill="#dedee2"/>
 
-          <!-- Top line (couleurs inversées par rapport au transfert effectué) -->
-          <rect x="0" y="0" width="${width}" height="13" fill="#FFFFFF"/>
+          <!-- Top line -->
+          <rect x="0" y="0" width="${width}" height="13" fill="#222d65"/>
 
           <!-- Carte supérieure -->
           <defs>
@@ -124,12 +124,12 @@ export class ImageGenerator {
             </filter>
           </defs>
 
-          <rect x="30" y="32" width="${width - 60}" height="300" rx="10" fill="#222d65" filter="url(#shadow)"/>
+          <rect x="30" y="32" width="${width - 60}" height="300" rx="10" fill="#FFFFFF" filter="url(#shadow)"/>
 
           <!-- Textes supérieurs -->
           <text x="${width / 2}" y="190" font-family="Arial" font-size="30" font-weight="bold" fill="#24ae89" text-anchor="middle">Paiement reçu</text>
-          <text x="${width / 2}" y="240" font-family="Verdana" font-size="24" fill="#FFFFFF" text-anchor="middle">Le montant de ${amount} a été reçu de</text>
-          <text x="${width / 2}" y="275" font-family="Verdana" font-size="24" fill="#FFFFFF" text-anchor="middle">${sender}</text>
+          <text x="${width / 2}" y="240" font-family="Verdana" font-size="24" fill="#222d65" text-anchor="middle">Le montant de ${amount} a été reçu de</text>
+          <text x="${width / 2}" y="275" font-family="Verdana" font-size="24" fill="#222d65" text-anchor="middle">${sender}</text>
           <text x="${width / 2}" y="310" font-family="Verdana" font-size="24" fill="#cccccc" text-anchor="middle">${reference}</text>
 
           <!-- Carte inférieure -->

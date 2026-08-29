@@ -27,7 +27,13 @@ function createFakeDb({ simulations = [], expediteur = null } = {}) {
   };
 }
 
-const SIMULATION = { reference: "FRGA1234", whatsapp: "+33612345678", recu: "38,85" };
+const SIMULATION = {
+  reference: "FRGA1234",
+  whatsapp: "+33612345678",
+  recu: "38,85",
+  beneficiaire_num: "074213803",
+  envoye: "25000",
+};
 
 describe("parseAmountToNumber", () => {
   test('convertit "38,85 € EUR" en 38.85', () => {
@@ -63,6 +69,8 @@ describe("PaymentMatcher.matchReceivedPayment", () => {
       matched: true,
       simulationReference: "FRGA1234",
       whatsapp: "+33612345678",
+      beneficiaireNum: "074213803",
+      envoye: "25000",
       expediteurCreated: false,
     });
     assert.ok(!db.calls.some(([name]) => name === "createExpediteur"));
@@ -82,6 +90,8 @@ describe("PaymentMatcher.matchReceivedPayment", () => {
       matched: true,
       simulationReference: "FRGA1234",
       whatsapp: "+33612345678",
+      beneficiaireNum: "074213803",
+      envoye: "25000",
       expediteurCreated: true,
     });
     assert.deepEqual(

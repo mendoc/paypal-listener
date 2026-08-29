@@ -159,7 +159,7 @@ export class DatabaseService {
   async findEligibleSimulations(amount) {
     try {
       const query = `
-        SELECT reference, whatsapp, recu FROM simulations
+        SELECT reference, whatsapp, recu, beneficiaire_num, envoye FROM simulations
         WHERE trans_type = 'FRGA'
           AND statut = 0
           AND creele >= NOW() - INTERVAL '2 days'

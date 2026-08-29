@@ -94,4 +94,43 @@ export class FirestoreService {
   async emitRefreshList(initiator) {
     await this._emitEvent("emitRefreshList", "refreshList", initiator);
   }
+
+  /**
+   * Crée la demande de transfert USSD qui déclenche l'envoi Airtel Money.
+   * L'identifiant du document est la référence de la simulation : `create` échoue
+   * si le document existe déjà, ce qui évite d'initier deux fois le même transfert.
+   * @param {{reference: string, phoneNumber: string, amount: string|number, type?: string}} params
+   * @returns {Promise<boolean>} true si la demande a été créée, false si elle existait déjà.
+   */
+  async createUssdRequest({ reference, phoneNumber, amount, type = "sa" }) {
+    const tag = "[createUssdRequest@FirestoreService]";
+
+    if (!reference || !phoneNumber || !amount) {
+      console.error(`${tag} Les paramètres 'reference', 'phoneNumber' et 'amount' sont requis.`);
+      return false;
+    }
+
+    const requestData = {
+      action: "EXECUTE_USSD",
+      phone_number: String(phoneNumber).replace(/\s/g, ""),
+      amount: String(amount).replace(/\D/g, ""),
+      reference,
+      type,
+      time: FieldValue.serverTimestamp(),
+    };
+
+    try {
+      await this.db.collection("ussd_requests").doc(reference).create(requestData);
+      console.log(`${tag} Demande de transfert créée dans 'ussd_requests/${reference}'.`);
+      return true;
+    } catch (error) {
+      // Code 6 = ALREADY_EXISTS : le transfert a déjà été initié pour cette simulation.
+      if (error.code === 6) {
+        console.log(`${tag} La demande 'ussd_requests/${reference}' existe déjà, transfert non ré-initié.`);
+        return false;
+      }
+      console.error(`${tag} Erreur lors de la création de la demande 'ussd_requests/${reference}'.`, error);
+      throw error;
+    }
+  }
 }

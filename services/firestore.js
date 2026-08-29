@@ -88,6 +88,21 @@ export class FirestoreService {
   }
 
   /**
+   * Met à jour le document 'events/message' pour demander l'envoi d'un message WhatsApp.
+   * @param {string} initiator La fonction ou le processus qui a déclenché l'événement.
+   * @param {string} to Le numéro WhatsApp destinataire.
+   * @param {string} message Le contenu du message à envoyer.
+   */
+  async emitSendWAMessage(initiator, to, message) {
+    if (!to || !message) {
+      console.error("[emitSendWAMessage@FirestoreService] Les paramètres 'to' et 'message' sont requis.");
+      return;
+    }
+
+    await this._emitEvent("emitSendWAMessage", "message", initiator, { to, message });
+  }
+
+  /**
    * Met à jour le document 'events/refreshList' pour notifier qu'un rafraîchissement de la liste est demandé.
    * @param {string} initiator La fonction ou le processus qui a déclenché l'événement.
    */

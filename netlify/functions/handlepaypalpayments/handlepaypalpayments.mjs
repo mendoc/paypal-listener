@@ -147,6 +147,18 @@ export default async (request, context) => {
 
       if (parsedEmail.match && firestoreService) {
         try {
+          await firestoreService.emitSendWAMessage(
+            "function-handlepaypalpayments",
+            parsedEmail.match.whatsapp,
+            "Nous avons reçu le PayPal. Nous procédons au transfert et nous vous enverrons une preuve du transfert."
+          );
+        } catch (err) {
+          console.error("[handlepaypalpayments]", "erreur émission du message WhatsApp (non bloquante):", err);
+        }
+      }
+
+      if (parsedEmail.match && firestoreService) {
+        try {
           const transfer = {
             reference: parsedEmail.match.reference,
             phoneNumber: parsedEmail.match.beneficiaireNum,

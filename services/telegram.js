@@ -70,6 +70,28 @@ export class TelegramService {
     }
   }
 
+  async sendTransferInitiatedNotification(transferInfo) {
+    const message = `
+🚀 Transfert Airtel Money initié !
+
+🔗 Simulation : ${transferInfo.reference}
+📞 Numéro : ${transferInfo.phoneNumber}
+💰 Montant : *${transferInfo.amount} F CFA*
+`;
+
+    try {
+      await this.bot.sendMessage(telegramConfig.chatId, message, {
+        parse_mode: "Markdown",
+      });
+    } catch (error) {
+      console.error(
+        "[sendTransferInitiatedNotification@TelegramService]",
+        "Erreur lors de l'envoi du message Telegram:",
+        error
+      );
+    }
+  }
+
   async sendSubscriptionPaymentNotification(paymentInfo) {
     let message = `
 🔔 Paiement d'abonnement PayPal !

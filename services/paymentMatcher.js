@@ -21,7 +21,8 @@ export class PaymentMatcher {
   /**
    * @param {{ sender: string|undefined, amount: number|null, fees?: number|null }} payment
    * @returns {Promise<
-   *   | { matched: true, simulationReference: string, whatsapp: string, expediteurCreated: boolean }
+   *   | { matched: true, simulationReference: string, whatsapp: string,
+   *       beneficiaireNum: string, envoye: string, expediteurCreated: boolean }
    *   | { matched: false, reason: "invalid-input" | "has-fees" | "no-simulation" | "ambiguous" }>}
    */
   async matchReceivedPayment({ sender, amount, fees = null }) {
@@ -60,6 +61,8 @@ export class PaymentMatcher {
       matched: true,
       simulationReference: simulation.reference,
       whatsapp: simulation.whatsapp,
+      beneficiaireNum: simulation.beneficiaire_num,
+      envoye: simulation.envoye,
       expediteurCreated,
     };
   }

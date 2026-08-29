@@ -119,7 +119,12 @@ export default async (request, context) => {
             fees: parseAmountToNumber(parsedEmail.fees),
           });
           if (match.matched) {
-            parsedEmail.match = { reference: match.simulationReference, whatsapp: match.whatsapp };
+            parsedEmail.match = {
+              reference: match.simulationReference,
+              whatsapp: match.whatsapp,
+              beneficiaireNum: match.beneficiaireNum,
+              envoye: match.envoye,
+            };
           }
           console.log("[handlepaypalpayments]", "matching expéditeur:", match);
         } catch (err) {
@@ -137,6 +142,22 @@ export default async (request, context) => {
           }
         } catch (err) {
           console.error("[handlepaypalpayments]", "erreur génération image paiement reçu (non bloquante):", err);
+        }
+      }
+
+      if (parsedEmail.match && firestoreService) {
+        try {
+          const transfer = {
+            reference: parsedEmail.match.reference,
+            phoneNumber: parsedEmail.match.beneficiaireNum,
+            amount: parsedEmail.match.envoye,
+          };
+          const created = await firestoreService.createUssdRequest(transfer);
+          if (created) {
+            await telegramService.sendTransferInitiatedNotification(transfer);
+          }
+        } catch (err) {
+          console.error("[handlepaypalpayments]", "erreur initiation du transfert Airtel Money (non bloquante):", err);
         }
       }
 

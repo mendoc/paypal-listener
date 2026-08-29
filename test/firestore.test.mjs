@@ -107,3 +107,73 @@ describe("FirestoreService.createUssdRequest", () => {
     await assert.rejects(service.createUssdRequest(TRANSFER), /indisponible/);
   });
 });
+
+// Faux Firestore pour les événements : `_emitEvent` tente un update puis crée
+// le document s'il n'existe pas (erreur de code 5).
+function createEventService({ docExists = true } = {}) {
+  const calls = [];
+  const service = Object.create(FirestoreService.prototype);
+  service.db = {
+    collection(name) {
+      calls.push(["collection", name]);
+      return {
+        doc(id) {
+          calls.push(["doc", id]);
+          return {
+            async update(data) {
+              calls.push(["update", data]);
+              if (!docExists) throw Object.assign(new Error("NOT_FOUND"), { code: 5 });
+            },
+            async set(data) {
+              calls.push(["set", data]);
+            },
+          };
+        },
+      };
+    },
+  };
+  return { service, calls };
+}
+
+const WA_MESSAGE =
+  "Nous avons reçu le PayPal. Nous procédons au transfert et nous vous enverrons une preuve du transfert.";
+
+describe("FirestoreService.emitSendWAMessage", () => {
+  test("écrit dans events/message avec l'initiateur, le numéro et le message", async () => {
+    const { service, calls } = createEventService();
+
+    await service.emitSendWAMessage("function-handlepaypalpayments", "+33612345678", WA_MESSAGE);
+
+    assert.deepEqual(calls[0], ["collection", "events"]);
+    assert.deepEqual(calls[1], ["doc", "message"]);
+
+    const [, data] = calls[2];
+    assert.equal(data.initiator, "function-handlepaypalpayments");
+    assert.equal(data.to, "+33612345678");
+    assert.equal(data.message, WA_MESSAGE);
+    assert.ok(data.time, "le champ time doit être renseigné");
+    assert.deepEqual(Object.keys(data).sort(), ["initiator", "message", "time", "to"]);
+  });
+
+  test("crée le document s'il n'existe pas encore", async () => {
+    const { service, calls } = createEventService({ docExists: false });
+
+    await service.emitSendWAMessage("function-checkpaypalpayments", "+241066123456", WA_MESSAGE);
+
+    const [op, data] = calls[calls.length - 1];
+    assert.equal(op, "set");
+    assert.equal(data.to, "+241066123456");
+    assert.equal(data.message, WA_MESSAGE);
+  });
+
+  test("n'écrit rien si le numéro ou le message est manquant", async () => {
+    for (const args of [
+      ["function-handlepaypalpayments", "", WA_MESSAGE],
+      ["function-handlepaypalpayments", "+33612345678", ""],
+    ]) {
+      const { service, calls } = createEventService();
+      await service.emitSendWAMessage(...args);
+      assert.deepEqual(calls, []);
+    }
+  });
+});

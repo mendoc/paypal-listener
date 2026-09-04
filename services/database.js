@@ -123,7 +123,7 @@ export class DatabaseService {
   async findExpediteurByNom(nom) {
     try {
       const query =
-        "SELECT uuid, numero, nom FROM expediteurs WHERE LOWER(TRIM(nom)) = LOWER(TRIM($1)) LIMIT 1";
+        "SELECT uuid, chat_id, nom FROM expediteurs WHERE LOWER(TRIM(nom)) = LOWER(TRIM($1)) LIMIT 1";
       const result = await this.pool.query(query, [nom]);
       if (result.rows.length > 0) {
         return result.rows[0];
@@ -138,13 +138,13 @@ export class DatabaseService {
     }
   }
 
-  async createExpediteur(numero, nom) {
+  async createExpediteur(chatId, nom) {
     try {
       const query =
-        "INSERT INTO expediteurs (numero, nom) VALUES ($1, $2) RETURNING uuid, numero, nom";
-      const result = await this.pool.query(query, [numero, nom]);
+        "INSERT INTO expediteurs (chat_id, nom) VALUES ($1, $2) RETURNING uuid, chat_id, nom";
+      const result = await this.pool.query(query, [chatId, nom]);
       console.log(
-        `[createExpediteur@DatabaseService] Expéditeur [${nom}] créé avec le numéro [${numero}].`
+        `[createExpediteur@DatabaseService] Expéditeur [${nom}] créé avec le chat_id [${chatId}].`
       );
       return result.rows[0];
     } catch (error) {

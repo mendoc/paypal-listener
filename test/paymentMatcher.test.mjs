@@ -16,9 +16,9 @@ function createFakeDb({ simulations = [], expediteur = null } = {}) {
       calls.push(["findExpediteurByNom", nom]);
       return expediteur;
     },
-    async createExpediteur(numero, nom) {
-      calls.push(["createExpediteur", numero, nom]);
-      return { uuid: "uuid-test", numero, nom };
+    async createExpediteur(chatId, nom) {
+      calls.push(["createExpediteur", chatId, nom]);
+      return { uuid: "uuid-test", chat_id: chatId, nom };
     },
     async setSimulationExpediteurNom(reference, nom) {
       calls.push(["setSimulationExpediteurNom", reference, nom]);
@@ -59,7 +59,7 @@ describe("PaymentMatcher.matchReceivedPayment", () => {
   test("Cas A : expéditeur connu + 1 simulation → enrichissement sans création", async () => {
     const db = createFakeDb({
       simulations: [SIMULATION],
-      expediteur: { uuid: "uuid-1", numero: "+33612345678", nom: "Jean Dupont" },
+      expediteur: { uuid: "uuid-1", chat_id: "+33612345678", nom: "Jean Dupont" },
     });
     const matcher = new PaymentMatcher(db);
 

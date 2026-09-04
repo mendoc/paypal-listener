@@ -176,6 +176,35 @@ export class DatabaseService {
     }
   }
 
+  async setSimulationVerifyToken(reference, token) {
+    try {
+      // COALESCE : ne remplace jamais un jeton déjà posé, sinon une seconde
+      // tentative invaliderait une demande déjà en vol côté app.
+      const query = `
+        UPDATE simulations
+        SET verify_token = COALESCE(verify_token, $2), updated_at = NOW()
+        WHERE reference = $1 AND statut = 0
+        RETURNING verify_token`;
+      const result = await this.pool.query(query, [reference, token]);
+      if (result.rows.length === 0) {
+        console.log(
+          `[setSimulationVerifyToken@DatabaseService] Simulation ${reference} introuvable ou déjà traitée.`
+        );
+        return null;
+      }
+      console.log(
+        `[setSimulationVerifyToken@DatabaseService] Jeton de vérification posé sur la simulation ${reference}.`
+      );
+      return result.rows[0].verify_token;
+    } catch (error) {
+      console.error(
+        `[setSimulationVerifyToken@DatabaseService] Erreur lors de la pose du jeton sur la simulation ${reference}.`,
+        error
+      );
+      throw error;
+    }
+  }
+
   async setSimulationExpediteurNom(reference, nom) {
     try {
       const query =

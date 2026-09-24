@@ -1,6 +1,6 @@
 import pkg from "pg";
 const { Pool } = pkg;
-import { database as dbConfig } from "./config";
+import { database as dbConfig } from "./config.js";
 
 export class DatabaseService {
   constructor() {
@@ -240,6 +240,52 @@ export class DatabaseService {
       await this.pool.query(query, [messageId]);
     } catch (error) {
       console.error(`[markEmailAsProcessed@DatabaseService] Erreur.`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Demande au bot WhatsApp d'envoyer un message (file `bot.outbox`, voir la documentation
+   * du bot : docs/outbox.md). Remplace l'ancien document Firestore `events/message` : un
+   * ordre émis pendant une indisponibilité du bot n'est plus perdu.
+   * @param {string} to Numéro ou chatId WhatsApp du destinataire.
+   * @param {string} message Texte à envoyer.
+   * @param {string|null} dedupKey Identifie l'événement : un même ordre n'est mis en file qu'une fois.
+   * @returns {Promise<boolean>} true si l'ordre a été ajouté, false s'il existait déjà.
+   */
+  async enqueueWhatsAppMessage(to, message, dedupKey = null) {
+    return this.#enqueueBotOrder("send_message", { to: String(to), message }, dedupKey);
+  }
+
+  /**
+   * Demande au bot WhatsApp d'envoyer la capture de la transaction au client (remplace le
+   * document Firestore `events/screenshot`). Sans `to`, le bot retrouve la conversation à
+   * partir de la référence de la simulation.
+   * @param {string} reference Référence de la simulation.
+   * @param {string|null} to Numéro ou chatId WhatsApp du destinataire.
+   * @returns {Promise<boolean>} true si l'ordre a été ajouté, false s'il existait déjà.
+   */
+  async enqueueScreenshot(reference, to = null) {
+    // Une seule capture par simulation : la référence identifie l'ordre.
+    return this.#enqueueBotOrder(
+      "send_screenshot",
+      { reference, to: to ? String(to) : null },
+      `screenshot:${reference}`
+    );
+  }
+
+  async #enqueueBotOrder(kind, payload, dedupKey) {
+    const tag = `[enqueueBotOrder@DatabaseService]`;
+    try {
+      const { rowCount } = await this.pool.query(
+        `INSERT INTO bot.outbox (kind, payload, dedup_key) VALUES ($1, $2::jsonb, $3)
+         ON CONFLICT (dedup_key) DO NOTHING`,
+        [kind, JSON.stringify(payload), dedupKey]
+      );
+      console.log(`${tag} Ordre ${kind} ${rowCount === 1 ? "mis en file" : "déjà en file"} (${dedupKey ?? "sans clé"}).`);
+      return rowCount === 1;
+    } catch (error) {
+      console.error(`${tag} Erreur lors de la mise en file de l'ordre ${kind}.`, error);
       throw error;
     }
   }

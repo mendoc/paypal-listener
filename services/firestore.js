@@ -114,14 +114,16 @@ export class FirestoreService {
    * Crée la demande de transfert USSD qui déclenche l'envoi Airtel Money.
    * L'identifiant du document est la référence de la simulation : `create` échoue
    * si le document existe déjà, ce qui évite d'initier deux fois le même transfert.
-   * @param {{reference: string, phoneNumber: string, amount: string|number, type?: string}} params
+   * @param {{reference: string, phoneNumber: string, amount: string|number, verifyToken: string, type?: string}} params
    * @returns {Promise<boolean>} true si la demande a été créée, false si elle existait déjà.
    */
-  async createUssdRequest({ reference, phoneNumber, amount, type = "sa" }) {
+  async createUssdRequest({ reference, phoneNumber, amount, verifyToken, type = "sa" }) {
     const tag = "[createUssdRequest@FirestoreService]";
 
-    if (!reference || !phoneNumber || !amount) {
-      console.error(`${tag} Les paramètres 'reference', 'phoneNumber' et 'amount' sont requis.`);
+    if (!reference || !phoneNumber || !amount || !verifyToken) {
+      console.error(
+        `${tag} Les paramètres 'reference', 'phoneNumber', 'amount' et 'verifyToken' sont requis.`
+      );
       return false;
     }
 
@@ -131,6 +133,7 @@ export class FirestoreService {
       amount: String(amount).replace(/\D/g, ""),
       reference,
       type,
+      verify_token: verifyToken,
       time: FieldValue.serverTimestamp(),
     };
 

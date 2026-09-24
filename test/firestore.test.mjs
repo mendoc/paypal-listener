@@ -26,7 +26,12 @@ function createService({ createError = null } = {}) {
   return { service, calls };
 }
 
-const TRANSFER = { reference: "FRGA1234", phoneNumber: "074213803", amount: "25000" };
+const TRANSFER = {
+  reference: "FRGA1234",
+  phoneNumber: "074213803",
+  amount: "25000",
+  verifyToken: "JETON-DE-TEST",
+};
 
 describe("FirestoreService.createUssdRequest", () => {
   test("crée le document avec les champs attendus par l'app USSD", async () => {
@@ -44,6 +49,7 @@ describe("FirestoreService.createUssdRequest", () => {
     assert.equal(data.amount, "25000");
     assert.equal(data.reference, "FRGA1234");
     assert.equal(data.type, "sa");
+    assert.equal(data.verify_token, "JETON-DE-TEST");
     assert.ok(data.time, "le champ time doit être renseigné");
     assert.deepEqual(Object.keys(data).sort(), [
       "action",
@@ -52,6 +58,7 @@ describe("FirestoreService.createUssdRequest", () => {
       "reference",
       "time",
       "type",
+      "verify_token",
     ]);
   });
 
@@ -62,6 +69,7 @@ describe("FirestoreService.createUssdRequest", () => {
       reference: "FRGA5678",
       phoneNumber: "074 21 38 03",
       amount: "25 000 F CFA",
+      verifyToken: "JETON-DE-TEST",
       type: "am",
     });
 
@@ -86,6 +94,7 @@ describe("FirestoreService.createUssdRequest", () => {
       { ...TRANSFER, reference: "" },
       { ...TRANSFER, phoneNumber: undefined },
       { ...TRANSFER, amount: null },
+      { ...TRANSFER, verifyToken: undefined },
     ]) {
       const { service, calls } = createService();
       assert.equal(await service.createUssdRequest(params), false);

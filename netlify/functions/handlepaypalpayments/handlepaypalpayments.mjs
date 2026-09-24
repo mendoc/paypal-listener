@@ -14,6 +14,7 @@ import { ImageGenerator } from "../../../services/ImageGenerator";
 import { FirestoreService } from "../../../services/firestore";
 import { getEmailType, parsePayPalEmail } from "../../../services/emailParser";
 import { PaymentMatcher, parseAmountToNumber } from "../../../services/paymentMatcher";
+import { initiateUssdTransfer } from "../../../services/ussdTransfer";
 
 export default async (request, context) => {
   if (request.method !== "POST") {
@@ -148,14 +149,15 @@ export default async (request, context) => {
 
       if (parsedEmail.match && firestoreService) {
         try {
-          const transfer = {
-            reference: parsedEmail.match.reference,
-            phoneNumber: parsedEmail.match.beneficiaireNum,
-            amount: parsedEmail.match.envoye,
-          };
-          const created = await firestoreService.createUssdRequest(transfer);
-          if (created) {
+          const transfer = await initiateUssdTransfer({
+            databaseService,
+            firestoreService,
+            match: parsedEmail.match,
+          });
+          if (transfer.initiated) {
             await telegramService.sendTransferInitiatedNotification(transfer);
+          } else {
+            console.log("[handlepaypalpayments]", "transfert non initié:", transfer.reason);
           }
         } catch (err) {
           console.error("[handlepaypalpayments]", "erreur initiation du transfert Airtel Money (non bloquante):", err);

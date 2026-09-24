@@ -135,12 +135,14 @@ export default async (request, context) => {
 
       await telegramService.sendPayPalNotification(parsedEmail);
 
-      if (parsedEmail.match && firestoreService) {
+      if (parsedEmail.match) {
         try {
-          await firestoreService.emitSendWAMessage(
-            "function-handlepaypalpayments",
+          // Ordre au bot WhatsApp (file bot.outbox) ; la référence PayPal évite un doublon si
+          // le même paiement est traité deux fois (handlepaypalpayments puis checkpaypalpayments).
+          await databaseService.enqueueWhatsAppMessage(
             parsedEmail.match.whatsapp,
-            "Nous avons reçu le PayPal. Nous procédons au transfert et nous vous enverrons une preuve du transfert."
+            "Nous avons reçu le PayPal. Nous procédons au transfert et nous vous enverrons une preuve du transfert.",
+            parsedEmail.reference ? `paypal-recu:${parsedEmail.reference}` : null
           );
         } catch (err) {
           console.error("[handlepaypalpayments]", "erreur émission du message WhatsApp (non bloquante):", err);
@@ -207,9 +209,16 @@ export default async (request, context) => {
 
           if (result.success) {
             await telegramService.sendMessage(`✅ Transaction ${parsedEmail.internalReference} marquée comme traitée.`);
-            if (shouldEmitEvent && firestoreService) {
-              await firestoreService.emitCaptureSaved("function-handlepaypalpayments", parsedEmail.internalReference, simulation.whatsapp);
-              await firestoreService.emitRefreshList("function-handlepaypalpayments");
+            if (shouldEmitEvent) {
+              try {
+                await databaseService.enqueueScreenshot(parsedEmail.internalReference, simulation.whatsapp);
+              } catch (err) {
+                console.error("[handlepaypalpayments]", "erreur mise en file de la capture (non bloquante):", err);
+                await telegramService.sendMessage(`❌ Capture de la transaction ${parsedEmail.internalReference} non envoyée au client : à envoyer à la main.`);
+              }
+              if (firestoreService) {
+                await firestoreService.emitRefreshList("function-handlepaypalpayments");
+              }
             }
           } else {
             await telegramService.sendMessage(`❌ Impossible de marquer la transaction ${parsedEmail.internalReference} comme traitée : ${result.message}`);

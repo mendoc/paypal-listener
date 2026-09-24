@@ -12,6 +12,16 @@ function parseDateHeader(emailDate) {
   };
 }
 
+// Référence de simulation Miango, telle que produite par genererID() côté miango :
+//   préfixe + année (2) + semaine ISO (2) + jour (A-G) + suffixe aléatoire (6)
+// Le préfixe vaut GF dans le sens GAFR et FG dans le sens FRGA, les deux pouvant
+// apparaître dans un mail PayPal. Le suffixe utilise l'alphabet ALPHABET_REFERENCE,
+// un base32 sans I, L, O ni U pour éviter les confusions visuelles.
+// La branche \d{4} couvre l'ancien suffixe à 4 chiffres, encore porté par les
+// simulations créées avant le changement de format ; à retirer quand il n'en reste plus.
+const INTERNAL_REFERENCE_PATTERN =
+  />((?:FG|GF)\d{4}[A-G](?:[0-9ABCDEFGHJKMNPQRSTVWXYZ]{6}|\d{4}))</;
+
 export function getEmailType(subject) {
   if (subject.includes("Vous avez reçu de l'argent")) {
     return "received";
@@ -111,7 +121,7 @@ function parseSentPaymentEmail(emailDate, emailContent) {
   );
   if (referenceMatch) result.reference = referenceMatch[1];
 
-  const internalReferenceMatch = emailContent.match(/>(GF\d{4}[A-Z]\d{4})</);
+  const internalReferenceMatch = emailContent.match(INTERNAL_REFERENCE_PATTERN);
   if (internalReferenceMatch) result.internalReference = internalReferenceMatch[1];
 
   return result;

@@ -22,7 +22,8 @@ export class PaymentMatcher {
    * @param {{ sender: string|undefined, amount: number|null, fees?: number|null }} payment
    * @returns {Promise<
    *   | { matched: true, simulationReference: string, whatsapp: string,
-   *       beneficiaireNum: string, envoye: string, expediteurCreated: boolean }
+   *       beneficiaireNum: string, envoye: string, expediteurCreated: boolean,
+   *       expediteurUpdated: boolean }
    *   | { matched: false, reason: "invalid-input" | "has-fees" | "no-simulation" | "ambiguous" }>}
    */
   async matchReceivedPayment({ sender, amount, fees = null }) {
@@ -47,12 +48,18 @@ export class PaymentMatcher {
     const simulation = simulations[0];
     const nom = sender.trim();
 
-    // Cas B : expéditeur inconnu -> on l'enregistre avec le numéro de la simulation
+    // Cas B : expéditeur inconnu -> on l'enregistre avec le numéro de la simulation.
+    // Sinon, la simulation rapprochée fait foi : si son numéro diffère du chat_id
+    // enregistré, on réaligne ce dernier pour ne pas écrire à un numéro périmé.
     const expediteur = await this.db.findExpediteurByNom(nom);
     let expediteurCreated = false;
+    let expediteurUpdated = false;
     if (!expediteur) {
       await this.db.createExpediteur(simulation.whatsapp, nom);
       expediteurCreated = true;
+    } else if (simulation.whatsapp && expediteur.chat_id !== simulation.whatsapp) {
+      await this.db.setExpediteurChatId(expediteur.uuid, simulation.whatsapp);
+      expediteurUpdated = true;
     }
 
     await this.db.setSimulationExpediteurNom(simulation.reference, nom);
@@ -64,6 +71,7 @@ export class PaymentMatcher {
       beneficiaireNum: simulation.beneficiaire_num,
       envoye: simulation.envoye,
       expediteurCreated,
+      expediteurUpdated,
     };
   }
 }

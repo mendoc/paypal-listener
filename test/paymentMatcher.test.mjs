@@ -20,6 +20,10 @@ function createFakeDb({ simulations = [], expediteur = null } = {}) {
       calls.push(["createExpediteur", chatId, nom]);
       return { uuid: "uuid-test", chat_id: chatId, nom };
     },
+    async setExpediteurChatId(uuid, chatId) {
+      calls.push(["setExpediteurChatId", uuid, chatId]);
+      return 1;
+    },
     async setSimulationExpediteurNom(reference, nom) {
       calls.push(["setSimulationExpediteurNom", reference, nom]);
       return 1;
@@ -72,6 +76,7 @@ describe("PaymentMatcher.matchReceivedPayment", () => {
       beneficiaireNum: "074213803",
       envoye: "25000",
       expediteurCreated: false,
+      expediteurUpdated: false,
     });
     assert.ok(!db.calls.some(([name]) => name === "createExpediteur"));
     assert.deepEqual(
@@ -93,6 +98,7 @@ describe("PaymentMatcher.matchReceivedPayment", () => {
       beneficiaireNum: "074213803",
       envoye: "25000",
       expediteurCreated: true,
+      expediteurUpdated: false,
     });
     assert.deepEqual(
       db.calls.find(([name]) => name === "createExpediteur"),
@@ -195,5 +201,62 @@ describe("PaymentMatcher.matchReceivedPayment", () => {
       matcher.matchReceivedPayment({ sender: "Jean Dupont", amount: 38.85 }),
       /connexion perdue/
     );
+  });
+});
+
+describe("PaymentMatcher — réalignement du chat_id de l'expéditeur", () => {
+  const EXPEDITEUR = { uuid: "uuid-1", chat_id: "+33612345678", nom: "Jean Dupont" };
+
+  test("chat_id identique à la simulation → aucune écriture", async () => {
+    const db = createFakeDb({ simulations: [SIMULATION], expediteur: EXPEDITEUR });
+    const matcher = new PaymentMatcher(db);
+
+    const result = await matcher.matchReceivedPayment({ sender: "Jean Dupont", amount: 38.85 });
+
+    assert.equal(result.expediteurUpdated, false);
+    assert.ok(!db.calls.some(([name]) => name === "setExpediteurChatId"));
+  });
+
+  test("chat_id différent → réaligné sur le numéro de la simulation", async () => {
+    const db = createFakeDb({
+      simulations: [SIMULATION],
+      expediteur: { ...EXPEDITEUR, chat_id: "+33600000000" },
+    });
+    const matcher = new PaymentMatcher(db);
+
+    const result = await matcher.matchReceivedPayment({ sender: "Jean Dupont", amount: 38.85 });
+
+    assert.equal(result.matched, true);
+    assert.equal(result.expediteurCreated, false);
+    assert.equal(result.expediteurUpdated, true);
+    assert.deepEqual(
+      db.calls.find(([name]) => name === "setExpediteurChatId"),
+      ["setExpediteurChatId", "uuid-1", "+33612345678"]
+    );
+  });
+
+  test("expéditeur inconnu → création seule, sans déréférencer l'expéditeur absent", async () => {
+    const db = createFakeDb({ simulations: [SIMULATION], expediteur: null });
+    const matcher = new PaymentMatcher(db);
+
+    const result = await matcher.matchReceivedPayment({ sender: "Jean Dupont", amount: 38.85 });
+
+    assert.equal(result.matched, true, "le rapprochement ne doit pas échouer sur un expéditeur inconnu");
+    assert.equal(result.expediteurCreated, true);
+    assert.equal(result.expediteurUpdated, false);
+    assert.ok(!db.calls.some(([name]) => name === "setExpediteurChatId"));
+  });
+
+  test("simulation sans numéro WhatsApp → chat_id existant laissé intact", async () => {
+    const db = createFakeDb({
+      simulations: [{ ...SIMULATION, whatsapp: null }],
+      expediteur: EXPEDITEUR,
+    });
+    const matcher = new PaymentMatcher(db);
+
+    const result = await matcher.matchReceivedPayment({ sender: "Jean Dupont", amount: 38.85 });
+
+    assert.equal(result.expediteurUpdated, false);
+    assert.ok(!db.calls.some(([name]) => name === "setExpediteurChatId"));
   });
 });

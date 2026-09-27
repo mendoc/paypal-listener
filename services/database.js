@@ -156,6 +156,24 @@ export class DatabaseService {
     }
   }
 
+  async setExpediteurChatId(uuid, chatId) {
+    try {
+      const query =
+        "UPDATE expediteurs SET chat_id = $2, updated_at = NOW() WHERE uuid = $1";
+      const result = await this.pool.query(query, [uuid, chatId]);
+      console.log(
+        `[setExpediteurChatId@DatabaseService] chat_id de l'expéditeur ${uuid} réaligné sur [${chatId}].`
+      );
+      return result.rowCount;
+    } catch (error) {
+      console.error(
+        `[setExpediteurChatId@DatabaseService] Erreur lors de la mise à jour du chat_id de l'expéditeur ${uuid}.`,
+        error
+      );
+      throw error;
+    }
+  }
+
   async findEligibleSimulations(amount) {
     try {
       const query = `

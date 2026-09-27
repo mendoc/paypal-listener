@@ -77,3 +77,27 @@ describe("DatabaseService.enqueueScreenshot", () => {
     assert.equal(calls[0].params[1], JSON.stringify({ reference: "FG1", to: null }));
   });
 });
+
+describe("DatabaseService.setExpediteurChatId", () => {
+  it("réaligne le chat_id de l'expéditeur désigné par son uuid", async () => {
+    const { service, calls } = createService();
+
+    const rowCount = await service.setExpediteurChatId("uuid-1", "+33612345678");
+
+    assert.equal(rowCount, 1);
+    assert.match(calls[0].sql, /UPDATE expediteurs SET chat_id = \$2, updated_at = NOW\(\) WHERE uuid = \$1/);
+    assert.deepEqual(calls[0].params, ["uuid-1", "+33612345678"]);
+  });
+
+  it("signale qu'aucun expéditeur ne porte cet uuid", async () => {
+    const { service } = createService({ rowCount: 0 });
+
+    assert.equal(await service.setExpediteurChatId("uuid-inconnu", "+33612345678"), 0);
+  });
+
+  it("propage une erreur de la base", async () => {
+    const { service } = createService({ error: new Error("base injoignable") });
+
+    await assert.rejects(service.setExpediteurChatId("uuid-1", "+33612345678"), /base injoignable/);
+  });
+});

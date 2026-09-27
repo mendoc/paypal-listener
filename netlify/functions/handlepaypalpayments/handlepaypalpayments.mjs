@@ -60,7 +60,7 @@ export default async (request, context) => {
       "service@paypal.com",
       "ongouadimitri5+caf_=notify=mail.ongoua.pro@gmail.com",
     ];
-    console.log("[handlepaypalpayments]", "Body", bodyPlain.substring(0, 50) + "...";
+    console.log("[handlepaypalpayments]", "Body", bodyPlain.substring(0, 50) + "...");
     if (!allowedSenders.includes(sender)) {
       console.log("[handlepaypalpayments]", "Sender ignoré:", sender);
       return Response.json({ ignored: true });

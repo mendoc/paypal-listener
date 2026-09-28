@@ -99,3 +99,69 @@ describe("parsePayPalEmail — référence de simulation", () => {
     }
   });
 });
+
+const FIXTURE_RECU = readFileSync(
+  new URL("./fixtures/paypal-received-payment.html", import.meta.url),
+  "utf8"
+);
+const EXPEDITEUR_FIXTURE = "Alain B. MOUKETOU";
+
+// Remplace le nom de l'expéditeur dans la phrase « … vous a envoyé … ».
+function avecExpediteur(nom) {
+  return FIXTURE_RECU.replace(EXPEDITEUR_FIXTURE, nom);
+}
+
+function parseRecu(html) {
+  return parsePayPalEmail("received", EMAIL_DATE, html);
+}
+
+describe("parsePayPalEmail — mail de réception", () => {
+  test("extrait les champs du mail au-delà de l'expéditeur", () => {
+    const result = parseRecu(FIXTURE_RECU);
+
+    assert.equal(result.type, "received");
+    assert.equal(result.amount, "54,88 € EUR");
+    assert.equal(result.date, "28 septembre 2026");
+    assert.equal(result.reference, "70910793MR795709J");
+    assert.ok(result.time, "l'heure est déduite de l'en-tête Date");
+  });
+});
+
+describe("parsePayPalEmail — nom de l'expéditeur", () => {
+  test("initiale pointée, le cas qui échouait auparavant", () => {
+    assert.equal(parseRecu(FIXTURE_RECU).sender, "Alain B. MOUKETOU");
+  });
+
+  test("accepte les noms ponctués, composés et accentués", () => {
+    const noms = [
+      "Jean Dupont",
+      "Marie-Claire Ngoua",
+      "N'Dong Obame",
+      "Anne-Sophie D'Alessio",
+      "Jean-Pierre O. NZE-BEKALE",
+      "Émilie Moussavou",
+      "Jean Pierre Marie Ndong",
+    ];
+    for (const nom of noms) {
+      assert.equal(parseRecu(avecExpediteur(nom)).sender, nom, `${nom} doit être extrait`);
+    }
+  });
+
+  test("accepte un nom d'un seul mot", () => {
+    assert.equal(parseRecu(avecExpediteur("Ngoua")).sender, "Ngoua");
+  });
+
+  test("ne capture pas le balisage qui précède le nom", () => {
+    const result = parseRecu(FIXTURE_RECU);
+
+    assert.ok(!result.sender.includes("<"), "le nom ne doit contenir aucune balise");
+    assert.ok(!result.sender.includes(">"), "le nom ne doit contenir aucune balise");
+    assert.equal(result.sender, result.sender.trim(), "le nom ne doit pas être entouré d'espaces");
+  });
+
+  test("sans la phrase attendue, l'expéditeur reste absent", () => {
+    const sansPhrase = FIXTURE_RECU.replace("vous a envoyé", "a reçu");
+
+    assert.equal(parseRecu(sansPhrase).sender, undefined);
+  });
+});

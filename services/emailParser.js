@@ -19,6 +19,15 @@ function parseDateHeader(emailDate) {
 // un base32 sans I, L, O ni U pour éviter les confusions visuelles.
 // La branche \d{4} couvre l'ancien suffixe à 4 chiffres, encore porté par les
 // simulations créées avant le changement de format ; à retirer quand il n'en reste plus.
+// Nom de l'expéditeur dans un mail « paiement reçu ». PayPal place la phrase
+// dans un nœud de texte isolé : « <span>NOM vous a envoyé MONTANT.</span> ».
+// On capture donc tout ce qui précède la phrase à l'intérieur de ce nœud, sans
+// présumer des caractères composant le nom — une classe de lettres échouait sur
+// les initiales pointées (« Urice A. NDOGHO »), les traits d'union et les
+// apostrophes, et laissait alors sender indéfini, ce qui bloque tout le
+// rapprochement en aval.
+const SENDER_PATTERN = />([^<>]+?)\s+vous a envoyé/;
+
 const INTERNAL_REFERENCE_PATTERN =
   />((?:FG|GF)\d{4}[A-G](?:[0-9ABCDEFGHJKMNPQRSTVWXYZ]{6}|\d{4}))</;
 
@@ -53,8 +62,8 @@ function parseReceivedPaymentEmail(emailDate, emailContent) {
     type: "received",
   };
 
-  const senderMatch = emailContent.match(/([\p{L}\p{M}]+\s+[\p{L}\p{M}]+(?:\s+[\p{L}\p{M}]+)*)\s+vous a envoyé/u);
-  if (senderMatch) result.sender = senderMatch[1];
+  const senderMatch = emailContent.match(SENDER_PATTERN);
+  if (senderMatch) result.sender = senderMatch[1].trim();
 
   const feesMatch = emailContent.match(
     /Frais<\/strong><\/td>\s*<td[^>]*>([^<]+)/

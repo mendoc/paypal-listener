@@ -1,0 +1,21 @@
+<!--
+  Extrait du corps HTML d'un mail PayPal « Vous avez reçu de l'argent ».
+  Le balisage reproduit fidèlement celui de PayPal pour les blocs que
+  services/emailParser.js analyse ; les données personnelles (nom de
+  l'expéditeur, identifiant de transaction) ont été remplacées.
+  Le nom retenu porte une initiale pointée : c'est le cas qui mettait en
+  échec l'ancienne extraction.
+-->
+<body>
+  <td align="center" style="padding:0px 24px 40px 24px;word-break:break-word">
+    <p class="ppsans" style="font-size:42px;line-height:46px;font-weight:900;color:#000;margin:0"><span>Alain B. MOUKETOU vous a envoyé 54,88 € EUR.</span></p>
+  </td>
+  <table id="cartDetails" cellSpacing="0" cellPadding="0" border="0" width="100%" dir="ltr" style="font-size:14px">
+    <tbody>
+      <tr>
+        <td style="padding:10px 10px;text-align:left;border-top:0px;width:50%;vertical-align:top"><span><strong>Numéro de transaction</strong></span><br /><a href="https://www.paypal.com/myaccount/activities/details/70910793MR795709J?source=p2p_email_goto_paypal" target="_blank"><span>70910793MR795709J</span></a></td>
+        <td style="padding:10px 10px;text-align:right;border-top:0px;width:50%;vertical-align:top"><span><strong>Date de la transaction</strong></span><br /><span>28 septembre 2026</span></td>
+      </tr>
+    </tbody>
+  </table>
+</body>

@@ -115,9 +115,10 @@ export class FirestoreService {
    * L'identifiant du document est la référence de la simulation : `create` échoue
    * si le document existe déjà, ce qui évite d'initier deux fois le même transfert.
    * @param {{reference: string, phoneNumber: string, amount: string|number, verifyToken: string, type?: string}} params
+   *   `type` vaut "am" par défaut ; passer "sa" explicitement pour l'ancien canal.
    * @returns {Promise<boolean>} true si la demande a été créée, false si elle existait déjà.
    */
-  async createUssdRequest({ reference, phoneNumber, amount, verifyToken, type = "sa" }) {
+  async createUssdRequest({ reference, phoneNumber, amount, verifyToken, type = "am" }) {
     const tag = "[createUssdRequest@FirestoreService]";
 
     if (!reference || !phoneNumber || !amount || !verifyToken) {

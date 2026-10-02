@@ -48,7 +48,7 @@ describe("FirestoreService.createUssdRequest", () => {
     assert.equal(data.phone_number, "074213803");
     assert.equal(data.amount, "25000");
     assert.equal(data.reference, "FRGA1234");
-    assert.equal(data.type, "sa");
+    assert.equal(data.type, "am");
     assert.equal(data.verify_token, "JETON-DE-TEST");
     assert.ok(data.time, "le champ time doit être renseigné");
     assert.deepEqual(Object.keys(data).sort(), [
@@ -70,13 +70,13 @@ describe("FirestoreService.createUssdRequest", () => {
       phoneNumber: "074 21 38 03",
       amount: "25 000 F CFA",
       verifyToken: "JETON-DE-TEST",
-      type: "am",
+      type: "sa",
     });
 
     const [, data] = calls[2];
     assert.equal(data.phone_number, "074213803");
     assert.equal(data.amount, "25000");
-    assert.equal(data.type, "am");
+    assert.equal(data.type, "sa");
   });
 
   test("les montants numériques sont convertis en chaîne", async () => {

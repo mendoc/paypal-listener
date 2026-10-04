@@ -111,6 +111,10 @@ export default async (request, context) => {
     const imageGenerator = new ImageGenerator();
 
     if (emailType === "received" || emailType === "subscription" || emailType === "refund") {
+      // Échec de rapprochement : notifié après la notification de paiement, pour
+      // que l'explication suive le paiement auquel elle se rapporte.
+      let matchFailure = null;
+
       if (emailType === "received") {
         try {
           const matcher = new PaymentMatcher(databaseService);
@@ -126,14 +130,23 @@ export default async (request, context) => {
               beneficiaireNum: match.beneficiaireNum,
               envoye: match.envoye,
             };
+          } else {
+            matchFailure = { reason: match.reason };
           }
           console.log("[handlepaypalpayments]", "matching expéditeur:", match);
         } catch (err) {
           console.error("[handlepaypalpayments]", "erreur matching expéditeur (non bloquante):", err);
+          matchFailure = { error: err };
         }
       }
 
       await telegramService.sendPayPalNotification(parsedEmail);
+
+      if (matchFailure?.error) {
+        await telegramService.sendMatchErrorNotification(parsedEmail, matchFailure.error);
+      } else if (matchFailure) {
+        await telegramService.sendMatchFailureNotification(parsedEmail, matchFailure.reason);
+      }
 
       if (parsedEmail.match) {
         try {

@@ -1,6 +1,18 @@
 import TelegramBot from "node-telegram-bot-api";
 import { telegram as telegramConfig } from "./config";
 import { ImageGenerator } from "./ImageGenerator";
+import { describeMatchFailure } from "./paymentMatcher";
+
+// Les notifications de diagnostic partent en parse_mode HTML : un nom
+// d'expéditeur ou un message d'erreur contenant _ ou * ferait rejeter un
+// message Markdown par Telegram (400), et l'explication serait perdue au
+// moment précis où elle est nécessaire.
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
 
 export class TelegramService {
   constructor() {
@@ -66,6 +78,73 @@ export class TelegramService {
         "[sendReceivedPaymentImage@TelegramService]",
         "Erreur lors de l'envoi de l'image Telegram:",
         error
+      );
+    }
+  }
+
+  /**
+   * Explique pourquoi un paiement reçu n'a pas été rapproché d'une simulation.
+   * Sans ce message, la raison n'existe que dans les logs Netlify, alors que
+   * la conséquence (pas de transfert, pas de message au client) est immédiate.
+   * @param {object} paymentInfo Le mail parsé, pour rappeler le contexte.
+   * @param {string} reason La raison renvoyée par le PaymentMatcher.
+   */
+  async sendMatchFailureNotification(paymentInfo, reason) {
+    const message = `
+⚠️ Paiement reçu non rapproché
+
+🧐 Raison : <b>${escapeHtml(describeMatchFailure(reason))}</b>
+
+👤 Expéditeur : ${escapeHtml(paymentInfo.sender || "introuvable")}
+💵 Montant : ${escapeHtml(paymentInfo.amount || "introuvable")}
+💳 Frais : ${escapeHtml(paymentInfo.fees || "0,00 € EUR")}
+🔢 Référence PayPal : ${escapeHtml(paymentInfo.reference || "introuvable")}
+
+👉 Aucun transfert Airtel Money n'a été lancé et le client n'a pas été prévenu : à traiter à la main.
+`;
+
+    try {
+      await this.bot.sendMessage(telegramConfig.chatId, message, {
+        parse_mode: "HTML",
+      });
+    } catch (error) {
+      console.error(
+        "[sendMatchFailureNotification@TelegramService]",
+        "Erreur lors de l'envoi du message Telegram:",
+        error
+      );
+    }
+  }
+
+  /**
+   * Signale qu'une erreur a interrompu le rapprochement. Le bloc appelant avale
+   * l'erreur pour ne pas perdre la notification de paiement : sans ce message,
+   * l'échec est totalement silencieux côté Telegram.
+   * @param {object} paymentInfo Le mail parsé, pour rappeler le contexte.
+   * @param {Error} error L'erreur levée pendant le rapprochement.
+   */
+  async sendMatchErrorNotification(paymentInfo, error) {
+    const message = `
+❌ Rapprochement du paiement reçu en erreur
+
+👤 Expéditeur : ${escapeHtml(paymentInfo.sender || "introuvable")}
+💵 Montant : ${escapeHtml(paymentInfo.amount || "introuvable")}
+🔢 Référence PayPal : ${escapeHtml(paymentInfo.reference || "introuvable")}
+
+🛠 Erreur : ${escapeHtml(error?.message || error)}
+
+👉 Aucun transfert Airtel Money n'a été lancé et le client n'a pas été prévenu : à traiter à la main.
+`;
+
+    try {
+      await this.bot.sendMessage(telegramConfig.chatId, message, {
+        parse_mode: "HTML",
+      });
+    } catch (sendError) {
+      console.error(
+        "[sendMatchErrorNotification@TelegramService]",
+        "Erreur lors de l'envoi du message Telegram:",
+        sendError
       );
     }
   }

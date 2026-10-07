@@ -1,6 +1,11 @@
 import { test, describe } from "node:test";
 import assert from "node:assert/strict";
-import { PaymentMatcher, parseAmountToNumber } from "../services/paymentMatcher.js";
+import {
+  MATCH_FAILURE_LABELS,
+  PaymentMatcher,
+  describeMatchFailure,
+  parseAmountToNumber,
+} from "../services/paymentMatcher.js";
 
 // Faux DatabaseService : enregistre les appels et rend les réponses configurées
 function createFakeDb({ simulations = [], expediteur = null } = {}) {
@@ -174,23 +179,33 @@ describe("PaymentMatcher.matchReceivedPayment", () => {
     }
   });
 
-  test("Entrée invalide (sender vide ou montant null) → aucun appel DB", async () => {
+  test("Entrée invalide → la raison distingue l'expéditeur du montant, aucun appel DB", async () => {
     const db = createFakeDb();
     const matcher = new PaymentMatcher(db);
 
     assert.deepEqual(
       await matcher.matchReceivedPayment({ sender: undefined, amount: 38.85 }),
-      { matched: false, reason: "invalid-input" }
+      { matched: false, reason: "missing-sender" }
     );
     assert.deepEqual(
       await matcher.matchReceivedPayment({ sender: "   ", amount: 38.85 }),
-      { matched: false, reason: "invalid-input" }
+      { matched: false, reason: "missing-sender" }
     );
     assert.deepEqual(
       await matcher.matchReceivedPayment({ sender: "Jean Dupont", amount: null }),
-      { matched: false, reason: "invalid-input" }
+      { matched: false, reason: "unreadable-amount" }
     );
     assert.deepEqual(db.calls, []);
+  });
+
+  test("l'expéditeur manquant primes sur le montant manquant", async () => {
+    const db = createFakeDb();
+    const matcher = new PaymentMatcher(db);
+
+    assert.deepEqual(
+      await matcher.matchReceivedPayment({ sender: undefined, amount: null }),
+      { matched: false, reason: "missing-sender" }
+    );
   });
 
   test("Erreur DB : l'erreur remonte à l'appelant", async () => {
@@ -258,5 +273,47 @@ describe("PaymentMatcher — réalignement du chat_id de l'expéditeur", () => {
 
     assert.equal(result.expediteurUpdated, false);
     assert.ok(!db.calls.some(([name]) => name === "setExpediteurChatId"));
+  });
+});
+
+describe("describeMatchFailure", () => {
+  test("chaque raison renvoyée par le matcher a un libellé", async () => {
+    const db = createFakeDb();
+    const matcher = new PaymentMatcher(db);
+
+    // Les raisons réellement produites, pour qu'un nouveau cas d'échec sans
+    // libellé fasse échouer ce test au lieu de passer en code brut.
+    const produced = [
+      (await matcher.matchReceivedPayment({ sender: undefined, amount: 1 })).reason,
+      (await matcher.matchReceivedPayment({ sender: "Jean", amount: null })).reason,
+      (await matcher.matchReceivedPayment({ sender: "Jean", amount: 1, fees: 1.25 })).reason,
+      (await new PaymentMatcher(createFakeDb({ simulations: [] })).matchReceivedPayment({
+        sender: "Jean",
+        amount: 1,
+      })).reason,
+      (await new PaymentMatcher(
+        createFakeDb({ simulations: [SIMULATION, { ...SIMULATION, reference: "FRGA5678" }] })
+      ).matchReceivedPayment({ sender: "Jean", amount: 38.85 })).reason,
+    ];
+
+    assert.deepEqual(
+      [...new Set(produced)].sort(),
+      Object.keys(MATCH_FAILURE_LABELS).sort(),
+      "les raisons produites et les libellés doivent coïncider exactement"
+    );
+    for (const reason of produced) {
+      assert.ok(
+        MATCH_FAILURE_LABELS[reason],
+        `la raison ${reason} doit avoir un libellé`
+      );
+      assert.equal(describeMatchFailure(reason), MATCH_FAILURE_LABELS[reason]);
+    }
+  });
+
+  test("une raison inconnue reste visible au lieu d'être tue", () => {
+    assert.equal(
+      describeMatchFailure("quelque-chose-de-neuf"),
+      "Raison inconnue (quelque-chose-de-neuf)"
+    );
   });
 });

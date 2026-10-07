@@ -13,6 +13,26 @@ export function parseAmountToNumber(amountStr) {
   return Number.isNaN(amount) ? null : amount;
 }
 
+// Raison d'un rapprochement impossible -> explication lisible dans Telegram.
+// Toute nouvelle raison doit être ajoutée ici : un test vérifie que chacune a
+// son libellé, pour qu'aucune ne remonte comme un code brut.
+export const MATCH_FAILURE_LABELS = {
+  "missing-sender": "Nom de l'expéditeur absent du mail PayPal",
+  "unreadable-amount": "Montant du paiement illisible dans le mail PayPal",
+  "has-fees":
+    "Des frais ont été prélevés : le montant reçu ne peut pas correspondre au montant d'une simulation",
+  "no-simulation":
+    "Aucune simulation FRGA en attente des deux derniers jours ne correspond à ce montant",
+  ambiguous:
+    "Plusieurs simulations FRGA en attente correspondent à ce montant : le rapprochement serait arbitraire",
+};
+
+// Libellé de la raison, ou la raison elle-même si elle n'est pas répertoriée :
+// mieux vaut un code brut dans la notification qu'une raison passée sous silence.
+export function describeMatchFailure(reason) {
+  return MATCH_FAILURE_LABELS[reason] || `Raison inconnue (${reason})`;
+}
+
 export class PaymentMatcher {
   constructor(databaseService) {
     this.db = databaseService;
@@ -24,11 +44,16 @@ export class PaymentMatcher {
    *   | { matched: true, simulationReference: string, whatsapp: string,
    *       beneficiaireNum: string, envoye: string, expediteurCreated: boolean,
    *       expediteurUpdated: boolean }
-   *   | { matched: false, reason: "invalid-input" | "has-fees" | "no-simulation" | "ambiguous" }>}
+   *   | { matched: false, reason: keyof typeof MATCH_FAILURE_LABELS }>}
    */
   async matchReceivedPayment({ sender, amount, fees = null }) {
-    if (!sender || !sender.trim() || amount == null) {
-      return { matched: false, reason: "invalid-input" };
+    // Les deux entrées sont distinguées : la notification doit dire laquelle
+    // manque, sinon il faut rouvrir le mail pour le savoir.
+    if (!sender || !sender.trim()) {
+      return { matched: false, reason: "missing-sender" };
+    }
+    if (amount == null) {
+      return { matched: false, reason: "unreadable-amount" };
     }
 
     // Des frais prélevés faussent la correspondance avec le montant de la
